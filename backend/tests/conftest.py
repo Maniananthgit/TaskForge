@@ -33,6 +33,13 @@ from app.core.database import Base, get_db
 from app.core.security import get_password_hash, create_access_token
 from app.models.user import User
 from app.models.enums import UserRole
+from app.worker.celery_app import celery_app
+
+# Enable eager execution for Celery tasks in test suite so no external broker is needed
+celery_app.conf.update(
+    task_always_eager=True,
+    task_eager_propagates=True,
+)
 
 # Use in-memory SQLite database for fast, isolated, reliable tests
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
@@ -133,6 +140,11 @@ def admin_token(admin_user: User) -> str:
 
 
 @pytest.fixture
+def admin_token_headers(admin_token: str) -> dict:
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest.fixture
 def pm_token(pm_user: User) -> str:
     return create_access_token(
         subject=pm_user.id,
@@ -142,9 +154,19 @@ def pm_token(pm_user: User) -> str:
 
 
 @pytest.fixture
+def pm_token_headers(pm_token: str) -> dict:
+    return {"Authorization": f"Bearer {pm_token}"}
+
+
+@pytest.fixture
 def dev_token(dev_user: User) -> str:
     return create_access_token(
         subject=dev_user.id,
         role=dev_user.role.value,
         email=dev_user.email
     )
+
+
+@pytest.fixture
+def dev_token_headers(dev_token: str) -> dict:
+    return {"Authorization": f"Bearer {dev_token}"}

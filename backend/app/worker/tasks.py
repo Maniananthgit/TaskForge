@@ -15,6 +15,29 @@ def send_notification_email(recipient_email: str, subject: str, body: str) -> di
     return {"status": "sent", "recipient": recipient_email, "subject": subject}
 
 
+@celery_app.task(name="app.worker.tasks.send_invitation_email")
+def send_invitation_email(recipient_email: str, recipient_name: str, invitation_link: str) -> dict:
+    """Asynchronous worker task to dispatch user invitation emails."""
+    logger.info(f"[Celery] Sending user invitation email to {recipient_email} ({recipient_name})")
+    # Dispatched safely in background; clearly reports configured/pending status
+    return {
+        "status": "queued_pending_smtp_configuration",
+        "recipient": recipient_email,
+        "type": "user_invitation"
+    }
+
+
+@celery_app.task(name="app.worker.tasks.send_password_reset_email")
+def send_password_reset_email(recipient_email: str, recipient_name: str, reset_link: str) -> dict:
+    """Asynchronous worker task to dispatch password reset emails."""
+    logger.info(f"[Celery] Sending password reset email to {recipient_email} ({recipient_name})")
+    return {
+        "status": "queued_pending_smtp_configuration",
+        "recipient": recipient_email,
+        "type": "password_reset"
+    }
+
+
 @celery_app.task(name="app.worker.tasks.check_overdue_tasks_job")
 def check_overdue_tasks_job() -> dict:
     """Scheduled task to detect overdue items and trigger automated notifications."""

@@ -10,7 +10,7 @@ from app.core.security import decode_token
 from app.core.exceptions import AuthenticationFailedException, PermissionDeniedException
 from app.models.user import User
 from app.models.revoked_token import RevokedToken
-from app.models.enums import UserRole
+from app.models.enums import UserRole, UserStatus
 from app.core.logging import logger
 
 oauth2_scheme = OAuth2PasswordBearer(
@@ -43,9 +43,13 @@ def get_current_user(
             raise AuthenticationFailedException("This token has been revoked / logged out.")
 
     user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    if not user or user.status == UserStatus.DELETED:
         raise AuthenticationFailedException("User no longer exists.")
-    if not user.is_active:
+    if not user.is_active or user.status != UserStatus.ACTIVE:
+        if user.status == UserStatus.SUSPENDED:
+            raise AuthenticationFailedException("User account is suspended.")
+        if user.status == UserStatus.PENDING_INVITATION:
+            raise AuthenticationFailedException("User account is pending invitation acceptance.")
         raise AuthenticationFailedException("User account is inactive.")
 
     return user

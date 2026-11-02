@@ -8,7 +8,7 @@ from app.core.exceptions import TaskForgeException
 from app.core.security import get_password_hash, RSAKeyManager
 from app.core.logging import logger
 from app.models.user import User
-from app.models.enums import UserRole
+from app.models.enums import UserRole, UserStatus
 from app.api.v1.api import api_router
 
 
@@ -24,6 +24,7 @@ def seed_initial_data():
                 hashed_password=get_password_hash("Admin123!"),
                 full_name="Enterprise Administrator",
                 role=UserRole.ADMIN,
+                status=UserStatus.ACTIVE,
                 is_active=True
             )
             db.add(admin)
@@ -37,6 +38,7 @@ def seed_initial_data():
                 hashed_password=get_password_hash("Manager123!"),
                 full_name="Sarah Connor (Project Manager)",
                 role=UserRole.PROJECT_MANAGER,
+                status=UserStatus.ACTIVE,
                 is_active=True
             )
             db.add(pm)
@@ -49,6 +51,7 @@ def seed_initial_data():
                 hashed_password=get_password_hash("Developer123!"),
                 full_name="Alex Rivera (Developer)",
                 role=UserRole.DEVELOPER,
+                status=UserStatus.ACTIVE,
                 is_active=True
             )
             db.add(dev)

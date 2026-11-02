@@ -7,6 +7,14 @@ class UserRole(str, enum.Enum):
     DEVELOPER = "developer"
 
 
+class UserStatus(str, enum.Enum):
+    PENDING_INVITATION = "pending_invitation"
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    SUSPENDED = "suspended"
+    DELETED = "deleted"
+
+
 class ProjectStatus(str, enum.Enum):
     PLANNING = "planning"
     IN_PROGRESS = "in_progress"

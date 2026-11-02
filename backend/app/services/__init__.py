@@ -4,6 +4,8 @@ from app.services.task_service import task_service
 from app.services.comment_service import comment_service
 from app.services.notification_service import notification_service
 from app.services.dashboard_service import dashboard_service
+from app.services.user_service import user_service
+from app.services.audit_service import audit_service
 
 __all__ = [
     "auth_service",
@@ -12,4 +14,6 @@ __all__ = [
     "comment_service",
     "notification_service",
     "dashboard_service",
+    "user_service",
+    "audit_service",
 ]

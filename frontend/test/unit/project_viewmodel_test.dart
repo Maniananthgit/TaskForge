@@ -111,6 +111,9 @@ class MockProjectRepository implements ProjectRepository {
 
 class MockUserService implements UserService {
   @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
   Future<List<UserModel>> getUsers({String? query, UserRole? role}) async {
     return [
       UserModel(id: 1, email: 'admin@taskforge.internal', fullName: 'Admin', role: UserRole.admin),

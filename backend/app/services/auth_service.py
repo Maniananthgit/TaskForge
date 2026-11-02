@@ -15,7 +15,7 @@ from app.core.exceptions import (
 )
 from app.models.user import User
 from app.models.revoked_token import RevokedToken
-from app.models.enums import UserRole
+from app.models.enums import UserRole, UserStatus
 from app.schemas.user import UserCreate, UserUpdate, Token, UserResponse
 from app.repositories.user_repository import user_repo
 from app.core.logging import logger
@@ -41,8 +41,17 @@ class AuthService:
             raise AuthenticationFailedException("Invalid email or password.")
         if not verify_password(password, user.hashed_password):
             raise AuthenticationFailedException("Invalid email or password.")
-        if not user.is_active:
+        if not user.is_active or user.status != UserStatus.ACTIVE:
+            if user.status == UserStatus.PENDING_INVITATION:
+                raise AuthenticationFailedException("Account is pending invitation acceptance. Please check your invitation email.")
+            if user.status == UserStatus.SUSPENDED:
+                raise AuthenticationFailedException("Account has been suspended. Please contact an administrator.")
+            if user.status == UserStatus.DELETED:
+                raise AuthenticationFailedException("Account no longer exists.")
             raise AuthenticationFailedException("User account is inactive.")
+
+        user.last_login_at = datetime.now(timezone.utc)
+        db.commit()
 
         access_token = create_access_token(
             subject=user.id,
