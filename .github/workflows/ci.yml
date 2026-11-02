@@ -160,25 +160,21 @@ jobs:
           flutter build web --release --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL || '/api/v1' }}
 
       - name: Deploy to Firebase Hosting (Service Account)
-        if: env.HAS_SA_SECRET == 'true'
+        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}"
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP }}'
           channelId: live
           projectId: taskforge-pm-app
-        env:
-          HAS_SA_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}
 
       - name: Deploy to Firebase Hosting (Token Fallback)
-        if: env.HAS_SA_SECRET != 'true' && env.HAS_TOKEN_SECRET == 'true'
+        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP == '' && secrets.FIREBASE_TOKEN != '' }}"
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only hosting --project taskforge-pm-app
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          HAS_SA_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}
-          HAS_TOKEN_SECRET: ${{ secrets.FIREBASE_TOKEN != '' }}
 
   # -------------------------------------------------------------
   # 5. Continuous Deployment: FastAPI Backend to Google Cloud Run
@@ -188,38 +184,36 @@ jobs:
     needs: [backend-test, docker-build-verification]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    env:
-      HAS_GCP_SECRET: ${{ secrets.GCP_SA_KEY != '' }}
 
     steps:
       - name: Checkout Code
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Set up Google Cloud SDK
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Google Container Registry / Artifact Registry
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         run: |
           gcloud auth configure-docker --quiet
 
       - name: Build and Push Backend Container
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         run: |
           docker build -t gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} -t gcr.io/taskforge-pm-app/taskforge-backend:latest ./backend
           docker push gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }}
           docker push gcr.io/taskforge-pm-app/taskforge-backend:latest
 
       - name: Deploy to Cloud Run
-        if: env.HAS_GCP_SECRET == 'true'
+        if: "${{ secrets.GCP_SA_KEY != '' }}"
         run: |
           gcloud run deploy taskforge-backend \
             --image gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} \
@@ -228,3 +222,4 @@ jobs:
             --allow-unauthenticated \
             --port 8000 \
             --set-env-vars "ENVIRONMENT=production"
+
