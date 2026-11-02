@@ -1,3 +1,4 @@
+import '../core/utils/network_utils.dart';
 import '../models/api_response.dart';
 import '../models/comment_model.dart';
 import '../models/task_history_model.dart';
@@ -11,14 +12,7 @@ class TaskRepository {
 
   TaskRepository(this._taskService, this._commentService);
 
-  bool _isNetworkFailure(dynamic error) {
-    final str = error.toString().toLowerCase();
-    return str.contains('clientexception') ||
-        str.contains('failed to fetch') ||
-        str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable');
-  }
+  bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
 
   final List<TaskModel> _demoTasks = [
     TaskModel(

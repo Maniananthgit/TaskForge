@@ -1,3 +1,4 @@
+import '../core/utils/network_utils.dart';
 import '../models/api_response.dart';
 import '../models/user_model.dart';
 import '../models/user_metrics_model.dart';
@@ -9,14 +10,7 @@ class UserRepository {
 
   UserRepository(this._userService);
 
-  bool _isNetworkFailure(dynamic error) {
-    final str = error.toString().toLowerCase();
-    return str.contains('clientexception') ||
-        str.contains('failed to fetch') ||
-        str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable');
-  }
+  bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
 
   // Fallback demo users for graceful preview resilience
   final List<UserModel> _demoUsers = [

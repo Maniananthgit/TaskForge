@@ -1,3 +1,4 @@
+import '../core/utils/network_utils.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
 
@@ -6,14 +7,7 @@ class NotificationRepository {
 
   NotificationRepository(this._notificationService);
 
-  bool _isNetworkFailure(dynamic error) {
-    final str = error.toString().toLowerCase();
-    return str.contains('clientexception') ||
-        str.contains('failed to fetch') ||
-        str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable');
-  }
+  bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
 
   final List<NotificationModel> _demoNotifications = [
     NotificationModel(

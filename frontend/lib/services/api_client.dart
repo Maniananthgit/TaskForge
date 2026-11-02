@@ -35,6 +35,15 @@ class ApiClient {
     }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (body is String) {
+        final trimmed = body.trimLeft().toLowerCase();
+        if (trimmed.startsWith('<!doctype') || trimmed.startsWith('<html')) {
+          throw ApiException(
+            message: 'Backend API service is not connected (host returned HTML page instead of API JSON).',
+            statusCode: 503,
+          );
+        }
+      }
       return body;
     }
 

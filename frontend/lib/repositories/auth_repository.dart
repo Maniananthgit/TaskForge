@@ -1,3 +1,4 @@
+import '../core/utils/network_utils.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
@@ -8,14 +9,7 @@ class AuthRepository {
 
   AuthRepository(this._authService, this._storageService);
 
-  bool _isNetworkFailure(dynamic error) {
-    final str = error.toString().toLowerCase();
-    return str.contains('clientexception') ||
-        str.contains('failed to fetch') ||
-        str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable');
-  }
+  bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
 
   UserModel _getDemoUser(String email, {UserRole? requestedRole, String? fullName}) {
     final lower = email.toLowerCase();

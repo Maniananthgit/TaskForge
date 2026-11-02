@@ -1,4 +1,5 @@
 import '../core/constants/api_constants.dart';
+import '../models/api_response.dart';
 import '../models/user_model.dart';
 import 'api_client.dart';
 import 'storage_service.dart';
@@ -26,7 +27,10 @@ class AuthService {
       requiresAuth: false,
     );
 
-    return UserModel.fromJson(response as Map<String, dynamic>);
+    if (response is! Map<String, dynamic>) {
+      throw ApiException(message: 'Backend server returned unexpected format.');
+    }
+    return UserModel.fromJson(response);
   }
 
   Future<UserModel> login({
@@ -42,7 +46,10 @@ class AuthService {
       requiresAuth: false,
     );
 
-    final data = response as Map<String, dynamic>;
+    if (response is! Map<String, dynamic>) {
+      throw ApiException(message: 'Backend server returned unexpected format.');
+    }
+    final data = response;
     final accessToken = data['access_token'] as String;
     final refreshToken = data['refresh_token'] as String;
     final user = UserModel.fromJson(data['user'] as Map<String, dynamic>);
@@ -55,7 +62,10 @@ class AuthService {
 
   Future<UserModel> getCurrentUser() async {
     final response = await _apiClient.get(ApiConstants.me);
-    final user = UserModel.fromJson(response as Map<String, dynamic>);
+    if (response is! Map<String, dynamic>) {
+      throw ApiException(message: 'Backend server returned unexpected format.');
+    }
+    final user = UserModel.fromJson(response);
     await _storageService.saveUser(user);
     return user;
   }

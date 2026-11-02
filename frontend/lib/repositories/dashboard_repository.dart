@@ -1,3 +1,4 @@
+import '../core/utils/network_utils.dart';
 import '../models/dashboard_metrics_model.dart';
 import '../models/project_model.dart';
 import '../models/task_model.dart';
@@ -8,14 +9,7 @@ class DashboardRepository {
 
   DashboardRepository(this._dashboardService);
 
-  bool _isNetworkFailure(dynamic error) {
-    final str = error.toString().toLowerCase();
-    return str.contains('clientexception') ||
-        str.contains('failed to fetch') ||
-        str.contains('socketexception') ||
-        str.contains('connection refused') ||
-        str.contains('network is unreachable');
-  }
+  bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
 
   Future<DashboardMetricsModel> getMetrics() async {
     try {
