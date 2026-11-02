@@ -159,8 +159,23 @@ jobs:
           cd frontend
           flutter build web --release --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL || '/api/v1' }}
 
+      - name: Check Firebase Credentials
+        id: check_firebase
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -n "$FIREBASE_SA" ]; then
+            echo "deploy_method=service_account" >> "$GITHUB_OUTPUT"
+          elif [ -n "$FIREBASE_TOKEN" ]; then
+            echo "deploy_method=token" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_method=none" >> "$GITHUB_OUTPUT"
+            echo "Notice: Neither FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP nor FIREBASE_TOKEN is set. Skipping Firebase deployment."
+          fi
+
       - name: Deploy to Firebase Hosting (Service Account)
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}"
+        if: steps.check_firebase.outputs.deploy_method == 'service_account'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
@@ -169,7 +184,7 @@ jobs:
           projectId: taskforge-pm-app
 
       - name: Deploy to Firebase Hosting (Token Fallback)
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP == '' && secrets.FIREBASE_TOKEN != '' }}"
+        if: steps.check_firebase.outputs.deploy_method == 'token'
         uses: w9jds/firebase-action@master
         with:
           args: deploy --only hosting --project taskforge-pm-app
@@ -186,34 +201,46 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
+      - name: Check GCP Credentials
+        id: check_gcp
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -n "$GCP_SA_KEY" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Notice: GCP_SA_KEY is not set. Skipping Cloud Run deployment."
+          fi
+
       - name: Checkout Code
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Set up Google Cloud SDK
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Google Container Registry / Artifact Registry
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         run: |
           gcloud auth configure-docker --quiet
 
       - name: Build and Push Backend Container
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         run: |
           docker build -t gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} -t gcr.io/taskforge-pm-app/taskforge-backend:latest ./backend
           docker push gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }}
           docker push gcr.io/taskforge-pm-app/taskforge-backend:latest
 
       - name: Deploy to Cloud Run
-        if: "${{ secrets.GCP_SA_KEY != '' }}"
+        if: steps.check_gcp.outputs.configured == 'true'
         run: |
           gcloud run deploy taskforge-backend \
             --image gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} \
