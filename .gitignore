@@ -49,3 +49,6 @@ frontend/.dart_tool/
 
 # OS
 Thumbs.db
+
+# Firebase local cache
+.firebase/

@@ -1,11 +1,16 @@
 # TaskForge — Enterprise Project Management System
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-taskforge--pm--app.web.app-FFCA28.svg?logo=firebase&logoColor=black)](https://taskforge-pm-app.web.app)
 [![CI/CD Pipeline](https://github.com/Maniananthgit/TaskForge/actions/workflows/ci.yml/badge.svg)](https://github.com/Maniananthgit/TaskForge/actions)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI_0.115-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com)
 [![Flutter](https://img.shields.io/badge/Frontend-Flutter_3.35-02569B.svg?logo=flutter)](https://flutter.dev)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL_16-336791.svg?logo=postgresql)](https://www.postgresql.org)
 [![Docker](https://img.shields.io/badge/Deployment-Docker_Compose-2496ED.svg?logo=docker)](https://www.docker.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> 🚀 **Live Production URL**: [https://taskforge-pm-app.web.app](https://taskforge-pm-app.web.app)
+> 
+> **Firebase Console**: [https://console.firebase.google.com/project/taskforge-pm-app/overview](https://console.firebase.google.com/project/taskforge-pm-app/overview)
 
 **TaskForge** is an enterprise-grade, production-engineered project management and collaborative task orchestration system. Engineered using a modular **FastAPI** backend and an **MVVM Flutter** client, TaskForge delivers sub-millisecond REST performance, role-based access control (RBAC), real-time audit change histories, background workers with Celery & Redis, and a sleek modern dark/light aesthetic.
 

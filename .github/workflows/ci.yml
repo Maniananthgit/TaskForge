@@ -5,8 +5,12 @@ on:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 jobs:
+  # -------------------------------------------------------------
+  # 1. Backend Testing & Quality Assurance
+  # -------------------------------------------------------------
   backend-test:
     name: Backend Pytest & Lint
     runs-on: ubuntu-latest
@@ -62,6 +66,9 @@ jobs:
           cd backend
           python -m pytest tests -v --durations=10
 
+  # -------------------------------------------------------------
+  # 2. Frontend Testing & Quality Assurance
+  # -------------------------------------------------------------
   frontend-test:
     name: Flutter Analyze & Test
     runs-on: ubuntu-latest
@@ -92,6 +99,9 @@ jobs:
           cd frontend
           flutter test --reporter expanded
 
+  # -------------------------------------------------------------
+  # 3. Docker Container Verification
+  # -------------------------------------------------------------
   docker-build-verification:
     name: Docker Build Verification
     needs: [backend-test, frontend-test]
@@ -118,3 +128,95 @@ jobs:
           context: ./frontend
           push: false
           tags: taskforge-frontend:latest
+
+  # -------------------------------------------------------------
+  # 4. Continuous Deployment: Flutter Web to Firebase Hosting
+  # -------------------------------------------------------------
+  deploy-frontend-firebase:
+    name: Deploy Flutter Web to Firebase Hosting
+    needs: [frontend-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.35.3"
+          channel: "stable"
+          cache: true
+
+      - name: Install Flutter Dependencies
+        run: |
+          cd frontend
+          flutter pub get
+
+      - name: Build Flutter Web Release
+        run: |
+          cd frontend
+          flutter build web --release --dart-define=API_BASE_URL=${{ secrets.API_BASE_URL || '/api/v1' }}
+
+      - name: Deploy to Firebase Hosting (Service Account)
+        if: env.HAS_SA_SECRET == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP }}'
+          channelId: live
+          projectId: taskforge-pm-app
+        env:
+          HAS_SA_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}
+
+      - name: Deploy to Firebase Hosting (Token Fallback)
+        if: env.HAS_SA_SECRET != 'true' && env.HAS_TOKEN_SECRET == 'true'
+        uses: w9jds/firebase-action@master
+        with:
+          args: deploy --only hosting --project taskforge-pm-app
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          HAS_SA_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TASKFORGE_PM_APP != '' }}
+          HAS_TOKEN_SECRET: ${{ secrets.FIREBASE_TOKEN != '' }}
+
+  # -------------------------------------------------------------
+  # 5. Continuous Deployment: FastAPI Backend to Google Cloud Run
+  # -------------------------------------------------------------
+  deploy-backend-cloudrun:
+    name: Deploy FastAPI Backend to Cloud Run
+    needs: [backend-test, docker-build-verification]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && secrets.GCP_SA_KEY != ''
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Google Container Registry / Artifact Registry
+        run: |
+          gcloud auth configure-docker --quiet
+
+      - name: Build and Push Backend Container
+        run: |
+          docker build -t gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} -t gcr.io/taskforge-pm-app/taskforge-backend:latest ./backend
+          docker push gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }}
+          docker push gcr.io/taskforge-pm-app/taskforge-backend:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy taskforge-backend \
+            --image gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --port 8000 \
+            --set-env-vars "ENVIRONMENT=production"
