@@ -187,31 +187,39 @@ jobs:
     name: Deploy FastAPI Backend to Cloud Run
     needs: [backend-test, docker-build-verification]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && secrets.GCP_SA_KEY != ''
+    if: github.ref == 'refs/heads/main'
+    env:
+      HAS_GCP_SECRET: ${{ secrets.GCP_SA_KEY != '' }}
 
     steps:
       - name: Checkout Code
+        if: env.HAS_GCP_SECRET == 'true'
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud
+        if: env.HAS_GCP_SECRET == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
 
       - name: Set up Google Cloud SDK
+        if: env.HAS_GCP_SECRET == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Google Container Registry / Artifact Registry
+        if: env.HAS_GCP_SECRET == 'true'
         run: |
           gcloud auth configure-docker --quiet
 
       - name: Build and Push Backend Container
+        if: env.HAS_GCP_SECRET == 'true'
         run: |
           docker build -t gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} -t gcr.io/taskforge-pm-app/taskforge-backend:latest ./backend
           docker push gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }}
           docker push gcr.io/taskforge-pm-app/taskforge-backend:latest
 
       - name: Deploy to Cloud Run
+        if: env.HAS_GCP_SECRET == 'true'
         run: |
           gcloud run deploy taskforge-backend \
             --image gcr.io/taskforge-pm-app/taskforge-backend:${{ github.sha }} \
