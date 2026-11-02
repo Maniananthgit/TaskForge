@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taskforge_app/models/api_response.dart';
 import 'package:taskforge_app/models/task_model.dart';
 import 'package:taskforge_app/models/comment_model.dart';
+import 'package:taskforge_app/models/task_history_model.dart';
 import 'package:taskforge_app/repositories/task_repository.dart';
 import 'package:taskforge_app/viewmodels/task_viewmodel.dart';
 
@@ -115,6 +116,11 @@ class MockTaskRepository implements TaskRepository {
   @override
   Future<void> deleteComment(int commentId) async {
     comments.removeWhere((c) => c.id == commentId);
+  }
+
+  @override
+  Future<List<TaskHistoryModel>> getTaskHistory(int taskId) async {
+    return [];
   }
 }
 
