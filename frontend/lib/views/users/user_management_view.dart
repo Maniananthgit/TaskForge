@@ -10,6 +10,7 @@ import '../../widgets/loading_view.dart';
 import '../../widgets/empty_view.dart';
 import 'invite_user_dialog.dart';
 import 'edit_user_dialog.dart';
+import 'company_setup_dialog.dart';
 import '../tasks/task_create_dialog.dart';
 
 class UserManagementView extends StatefulWidget {
@@ -70,6 +71,21 @@ class _UserManagementViewState extends State<UserManagementView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Invitation sent successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  void _showCompanySetupDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => const CompanySetupDialog(),
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Company settings saved successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -410,18 +426,41 @@ class _UserManagementViewState extends State<UserManagementView> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('User Management', style: AppTextStyles.h1(context)),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.admin_panel_settings_rounded, color: AppColors.primary, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Text('Admin Console — User & Company Setup', style: AppTextStyles.h1(context)),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Text(
-                        'Manage accounts, authorization roles, security states, and invitation workflows.',
+                        'Setup, add, update, and delete enterprise members, authorization roles, and company settings.',
                         style: AppTextStyles.bodyMedium(context).copyWith(color: Colors.grey),
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _showInviteDialog,
-                    icon: const Icon(Icons.person_add_rounded, size: 18),
-                    label: const Text('Invite User'),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: _showCompanySetupDialog,
+                        icon: const Icon(Icons.apartment_rounded, size: 18),
+                        label: const Text('Company Setup'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: _showInviteDialog,
+                        icon: const Icon(Icons.person_add_rounded, size: 18),
+                        label: const Text('+ Add New User'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -746,105 +785,103 @@ class _UserManagementViewState extends State<UserManagementView> {
                                   ),
                                 ),
 
-                                // Actions Menu
+                                // Actions Menu with Direct Quick Action Buttons
                                 DataCell(
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert_rounded, size: 20),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    onSelected: (value) {
-                                      switch (value) {
-                                        case 'details':
-                                          context.go('/users/${user.id}');
-                                          break;
-                                        case 'assign_task':
-                                          _showAssignTaskDialog(user);
-                                          break;
-                                        case 'edit':
-                                          _showEditDialog(user);
-                                          break;
-                                        case 'role':
-                                          _showRoleChangeDialog(user);
-                                          break;
-                                        case 'status':
-                                          _showStatusChangeDialog(user);
-                                          break;
-                                        case 'resend':
-                                          userVM.resendInvitation(user.id);
-                                          break;
-                                        case 'reset_pass':
-                                          _handleResetPassword(user);
-                                          break;
-                                        case 'delete':
-                                          _handleSoftDelete(user);
-                                          break;
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'details',
-                                        child: ListTile(
-                                          leading: Icon(Icons.visibility_outlined, size: 18),
-                                          title: Text('View Profile & Audit'),
-                                          dense: true,
-                                        ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // 1. Direct Update / Edit Profile Button
+                                      IconButton(
+                                        icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
+                                        tooltip: 'Update / Edit Profile & Company',
+                                        onPressed: () => _showEditDialog(user),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'assign_task',
-                                        child: ListTile(
-                                          leading: Icon(Icons.assignment_ind_outlined, size: 18, color: AppColors.primary),
-                                          title: Text('Assign Task'),
-                                          dense: true,
-                                        ),
+                                      // 2. Direct Assign Task Button
+                                      IconButton(
+                                        icon: const Icon(Icons.assignment_ind_outlined, size: 18, color: AppColors.info),
+                                        tooltip: 'Assign Task',
+                                        onPressed: () => _showAssignTaskDialog(user),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: ListTile(
-                                          leading: Icon(Icons.edit_outlined, size: 18),
-                                          title: Text('Edit Profile'),
-                                          dense: true,
-                                        ),
+                                      // 3. Direct Role Change Button
+                                      IconButton(
+                                        icon: const Icon(Icons.shield_outlined, size: 18, color: AppColors.warning),
+                                        tooltip: 'Change Authorization Role',
+                                        onPressed: () => _showRoleChangeDialog(user),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'role',
-                                        child: ListTile(
-                                          leading: Icon(Icons.shield_outlined, size: 18),
-                                          title: Text('Change Role'),
-                                          dense: true,
-                                        ),
+                                      // 4. Direct Delete / Archive Button
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
+                                        tooltip: 'Delete / Archive User',
+                                        onPressed: () => _handleSoftDelete(user),
                                       ),
-                                      const PopupMenuItem(
-                                        value: 'status',
-                                        child: ListTile(
-                                          leading: Icon(Icons.toggle_on_outlined, size: 18),
-                                          title: Text('Change Status'),
-                                          dense: true,
-                                        ),
-                                      ),
-                                      if (user.status == UserStatus.pendingInvitation)
-                                        const PopupMenuItem(
-                                          value: 'resend',
-                                          child: ListTile(
-                                            leading: Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.warning),
-                                            title: Text('Resend Invitation'),
-                                            dense: true,
+                                      // 5. Overflow menu for Status, Password Reset, Audit
+                                      PopupMenuButton<String>(
+                                        icon: const Icon(Icons.more_vert_rounded, size: 18),
+                                        tooltip: 'More Setup Options',
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        onSelected: (value) {
+                                          switch (value) {
+                                            case 'details':
+                                              context.go('/users/${user.id}');
+                                              break;
+                                            case 'assign_task':
+                                              _showAssignTaskDialog(user);
+                                              break;
+                                            case 'edit':
+                                              _showEditDialog(user);
+                                              break;
+                                            case 'role':
+                                              _showRoleChangeDialog(user);
+                                              break;
+                                            case 'status':
+                                              _showStatusChangeDialog(user);
+                                              break;
+                                            case 'resend':
+                                              userVM.resendInvitation(user.id);
+                                              break;
+                                            case 'reset_pass':
+                                              _handleResetPassword(user);
+                                              break;
+                                            case 'delete':
+                                              _handleSoftDelete(user);
+                                              break;
+                                          }
+                                        },
+                                        itemBuilder: (context) => [
+                                          const PopupMenuItem(
+                                            value: 'details',
+                                            child: ListTile(
+                                              leading: Icon(Icons.visibility_outlined, size: 18),
+                                              title: Text('View Profile & Audit'),
+                                              dense: true,
+                                            ),
                                           ),
-                                        ),
-                                      const PopupMenuItem(
-                                        value: 'reset_pass',
-                                        child: ListTile(
-                                          leading: Icon(Icons.vpn_key_outlined, size: 18),
-                                          title: Text('Reset Password'),
-                                          dense: true,
-                                        ),
-                                      ),
-                                      const PopupMenuDivider(),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: ListTile(
-                                          leading: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
-                                          title: Text('Archive User', style: TextStyle(color: AppColors.error)),
-                                          dense: true,
-                                        ),
+                                          const PopupMenuItem(
+                                            value: 'status',
+                                            child: ListTile(
+                                              leading: Icon(Icons.toggle_on_outlined, size: 18),
+                                              title: Text('Change Status (Active/Inactive)'),
+                                              dense: true,
+                                            ),
+                                          ),
+                                          if (user.status == UserStatus.pendingInvitation)
+                                            const PopupMenuItem(
+                                              value: 'resend',
+                                              child: ListTile(
+                                                leading: Icon(Icons.mail_outline_rounded, size: 18, color: AppColors.warning),
+                                                title: Text('Resend Invitation'),
+                                                dense: true,
+                                              ),
+                                            ),
+                                          const PopupMenuItem(
+                                            value: 'reset_pass',
+                                            child: ListTile(
+                                              leading: Icon(Icons.vpn_key_outlined, size: 18),
+                                              title: Text('Issue Password Reset'),
+                                              dense: true,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),

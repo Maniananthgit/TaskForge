@@ -36,7 +36,7 @@ class AppNavigationShell extends StatelessWidget {
         context.go('/profile');
         break;
       case 5:
-        context.go('/users');
+        context.go('/admin');
         break;
     }
   }
@@ -136,27 +136,25 @@ class AppNavigationShell extends StatelessWidget {
                           activeIcon: Icons.person_rounded,
                           label: 'Profile',
                         ),
-                        if (user?.role == UserRole.admin) ...[
-                          const SizedBox(height: 12),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            child: Text(
-                              'ADMINISTRATION',
-                              style: AppTextStyles.caption(context).copyWith(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: Text(
+                            'ADMINISTRATION',
+                            style: AppTextStyles.caption(context).copyWith(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
                             ),
                           ),
-                          _buildNavItem(
-                            context,
-                            index: 5,
-                            icon: Icons.manage_accounts_outlined,
-                            activeIcon: Icons.manage_accounts_rounded,
-                            label: 'User Management',
-                          ),
-                        ],
+                        ),
+                        _buildNavItem(
+                          context,
+                          index: 5,
+                          icon: Icons.admin_panel_settings_outlined,
+                          activeIcon: Icons.admin_panel_settings_rounded,
+                          label: 'Admin Console',
+                        ),
                       ],
                     ),
                   ),
@@ -326,12 +324,11 @@ class AppNavigationShell extends StatelessWidget {
             selectedIcon: Icon(Icons.person_rounded),
             label: 'Profile',
           ),
-          if (user?.role == UserRole.admin)
-            const NavigationDestination(
-              icon: Icon(Icons.manage_accounts_outlined),
-              selectedIcon: Icon(Icons.manage_accounts_rounded),
-              label: 'Users',
-            ),
+          const NavigationDestination(
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            selectedIcon: Icon(Icons.admin_panel_settings_rounded),
+            label: 'Admin',
+          ),
         ],
       ),
     );

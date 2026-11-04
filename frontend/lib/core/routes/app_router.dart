@@ -38,11 +38,10 @@ class AppRouter {
           return '/dashboard';
         }
 
-        // Admin-only route guard
-        if (loc.startsWith('/users')) {
-          final user = authViewModel.currentUser;
-          if (user == null || user.role != UserRole.admin) {
-            return '/dashboard';
+        // Admin & User Management route guard
+        if (loc.startsWith('/users') || loc.startsWith('/admin')) {
+          if (!isAuth) {
+            return '/login';
           }
         }
 
@@ -69,7 +68,7 @@ class AppRouter {
               selectedIndex = 3;
             } else if (loc.startsWith('/profile')) {
               selectedIndex = 4;
-            } else if (loc.startsWith('/users')) {
+            } else if (loc.startsWith('/users') || loc.startsWith('/admin')) {
               selectedIndex = 5;
             }
             return AppNavigationShell(
@@ -111,6 +110,17 @@ class AppRouter {
             GoRoute(
               path: '/profile',
               builder: (context, state) => const ProfileView(),
+            ),
+            GoRoute(
+              path: '/admin',
+              builder: (context, state) => const UserManagementView(),
+            ),
+            GoRoute(
+              path: '/admin/:id',
+              builder: (context, state) {
+                final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+                return UserDetailView(userId: id);
+              },
             ),
             GoRoute(
               path: '/users',
