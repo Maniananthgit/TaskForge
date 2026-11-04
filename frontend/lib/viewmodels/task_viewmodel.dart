@@ -218,10 +218,14 @@ class TaskViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> addComment(int taskId, String content) async {
+  Future<bool> addComment(int taskId, String content, {bool isInternal = false}) async {
     if (content.trim().isEmpty) return false;
     try {
-      final newComment = await _taskRepository.addComment(taskId: taskId, content: content);
+      final newComment = await _taskRepository.addComment(
+        taskId: taskId,
+        content: content,
+        isInternal: isInternal,
+      );
       _comments.insert(0, newComment);
       notifyListeners();
       return true;

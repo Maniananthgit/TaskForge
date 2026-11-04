@@ -1,6 +1,8 @@
 enum UserRole {
   admin,
   projectManager,
+  employee,
+  client,
   developer;
 
   static UserRole fromString(String role) {
@@ -10,6 +12,10 @@ enum UserRole {
       case 'project_manager':
       case 'projectmanager':
         return UserRole.projectManager;
+      case 'client':
+        return UserRole.client;
+      case 'employee':
+        return UserRole.employee;
       case 'developer':
       default:
         return UserRole.developer;
@@ -22,6 +28,10 @@ enum UserRole {
         return 'Admin';
       case UserRole.projectManager:
         return 'Project Manager';
+      case UserRole.employee:
+        return 'Employee';
+      case UserRole.client:
+        return 'Client';
       case UserRole.developer:
         return 'Developer';
     }
@@ -33,6 +43,10 @@ enum UserRole {
         return 'admin';
       case UserRole.projectManager:
         return 'project_manager';
+      case UserRole.employee:
+        return 'employee';
+      case UserRole.client:
+        return 'client';
       case UserRole.developer:
         return 'developer';
     }

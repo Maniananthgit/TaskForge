@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/task_model.dart';
+import '../../models/user_model.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/project_viewmodel.dart';
 import '../../viewmodels/task_viewmodel.dart';
@@ -93,6 +94,16 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
     final user = authVM.currentUser;
     final task = taskVM.selectedTask;
 
+    final canDelete = user?.role == UserRole.admin ||
+        user?.role == UserRole.projectManager ||
+        (task != null && task.creatorId == user?.id);
+
+    final canUpdateStatus = user?.role == UserRole.admin ||
+        user?.role == UserRole.projectManager ||
+        (task != null && (task.assigneeId == user?.id || task.creatorId == user?.id));
+
+    final canReassign = user?.role == UserRole.admin || user?.role == UserRole.projectManager;
+
     if (taskVM.isLoading && task == null) {
       return const Scaffold(body: LoadingView(message: 'Loading task details...'));
     }
@@ -179,11 +190,12 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
-                          onPressed: _confirmDelete,
-                          tooltip: 'Delete Task',
-                        ),
+                        if (canDelete)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
+                            onPressed: _confirmDelete,
+                            tooltip: 'Delete Task',
+                          ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -199,58 +211,64 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Change Status: ', style: AppTextStyles.bodyBold(context)),
+                            Text('Status: ', style: AppTextStyles.bodyBold(context)),
                             const SizedBox(width: 8),
-                            DropdownButton<TaskStatus>(
-                              value: task.status,
-                              underline: const SizedBox.shrink(),
-                              items: TaskStatus.values.map((s) {
-                                return DropdownMenuItem(
-                                  value: s,
-                                  child: Text(s.displayName),
-                                );
-                              }).toList(),
-                              onChanged: (newStatus) {
-                                if (newStatus != null) {
-                                  taskVM.updateStatus(id: task.id, status: newStatus);
-                                }
-                              },
-                            ),
+                            if (canUpdateStatus)
+                              DropdownButton<TaskStatus>(
+                                value: task.status,
+                                underline: const SizedBox.shrink(),
+                                items: TaskStatus.values.map((s) {
+                                  return DropdownMenuItem(
+                                    value: s,
+                                    child: Text(s.displayName),
+                                  );
+                                }).toList(),
+                                onChanged: (newStatus) {
+                                  if (newStatus != null) {
+                                    taskVM.updateStatus(id: task.id, status: newStatus);
+                                  }
+                                },
+                              )
+                            else
+                              StatusBadge.forTaskStatus(task.status.name),
                           ],
                         ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text('Assign Employee: ', style: AppTextStyles.bodyBold(context)),
+                            Text('Assignee: ', style: AppTextStyles.bodyBold(context)),
                             const SizedBox(width: 8),
-                            DropdownButton<int?>(
-                              value: task.assigneeId,
-                              underline: const SizedBox.shrink(),
-                              hint: const Text('Unassigned'),
-                              items: [
-                                const DropdownMenuItem<int?>(value: null, child: Text('Unassigned')),
-                                ...projectVM.availableUsers.map((u) {
-                                  return DropdownMenuItem<int?>(
-                                    value: u.id,
-                                    child: Text('${u.fullName} (${u.role.displayName})'),
+                            if (canReassign)
+                              DropdownButton<int?>(
+                                value: task.assigneeId,
+                                underline: const SizedBox.shrink(),
+                                hint: const Text('Unassigned'),
+                                items: [
+                                  const DropdownMenuItem<int?>(value: null, child: Text('Unassigned')),
+                                  ...projectVM.availableUsers.map((u) {
+                                    return DropdownMenuItem<int?>(
+                                      value: u.id,
+                                      child: Text('${u.fullName} (${u.role.displayName})'),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (newAssigneeId) async {
+                                  final success = await taskVM.updateTask(
+                                    id: task.id,
+                                    assigneeId: newAssigneeId,
                                   );
-                                }),
-                              ],
-                              onChanged: (newAssigneeId) async {
-                                final success = await taskVM.updateTask(
-                                  id: task.id,
-                                  assigneeId: newAssigneeId,
-                                );
-                                if (success && mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Task assignee updated successfully.'),
-                                      backgroundColor: AppColors.success,
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
+                                  if (success && mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Task assignee updated successfully.'),
+                                        backgroundColor: AppColors.success,
+                                      ),
+                                    );
+                                  }
+                                },
+                              )
+                            else
+                              Text(task.assignee?.fullName ?? 'Unassigned', style: AppTextStyles.body(context)),
                           ],
                         ),
                       ],
@@ -409,6 +427,24 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
                                                     comment.author?.fullName ?? 'User',
                                                     style: AppTextStyles.bodyBold(context),
                                                   ),
+                                                  if (comment.isInternal) ...[
+                                                    const SizedBox(width: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.warning.withOpacity(0.15),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                      ),
+                                                      child: const Text(
+                                                        'INTERNAL',
+                                                        style: TextStyle(
+                                                          color: AppColors.warning,
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ],
                                               ),
                                               Row(

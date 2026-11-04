@@ -361,9 +361,17 @@ class TaskRepository {
     }
   }
 
-  Future<CommentModel> addComment({required int taskId, required String content}) async {
+  Future<CommentModel> addComment({
+    required int taskId,
+    required String content,
+    bool isInternal = false,
+  }) async {
     try {
-      return await _commentService.addComment(taskId: taskId, content: content);
+      return await _commentService.addComment(
+        taskId: taskId,
+        content: content,
+        isInternal: isInternal,
+      );
     } catch (e) {
       if (_isNetworkFailure(e)) {
         return CommentModel(
@@ -371,6 +379,7 @@ class TaskRepository {
           taskId: taskId,
           authorId: 1,
           content: content,
+          isInternal: isInternal,
           createdAt: DateTime.now(),
         );
       }

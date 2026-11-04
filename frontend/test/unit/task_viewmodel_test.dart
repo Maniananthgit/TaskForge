@@ -107,8 +107,18 @@ class MockTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<CommentModel> addComment({required int taskId, required String content}) async {
-    final c = CommentModel(id: comments.length + 1, taskId: taskId, authorId: 1, content: content);
+  Future<CommentModel> addComment({
+    required int taskId,
+    required String content,
+    bool isInternal = false,
+  }) async {
+    final c = CommentModel(
+      id: comments.length + 1,
+      taskId: taskId,
+      authorId: 1,
+      content: content,
+      isInternal: isInternal,
+    );
     comments.add(c);
     return c;
   }

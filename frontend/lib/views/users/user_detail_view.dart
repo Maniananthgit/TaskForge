@@ -65,8 +65,11 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
         return AppColors.primary;
       case UserRole.projectManager:
         return AppColors.warning;
+      case UserRole.employee:
       case UserRole.developer:
         return AppColors.info;
+      case UserRole.client:
+        return Colors.teal;
     }
   }
 

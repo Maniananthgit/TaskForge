@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/task_model.dart';
+import '../../models/user_model.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/task_viewmodel.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/loading_view.dart';
@@ -53,6 +55,8 @@ class _TaskListViewState extends State<TaskListView> {
   @override
   Widget build(BuildContext context) {
     final taskVM = context.watch<TaskViewModel>();
+    final authVM = context.watch<AuthViewModel>();
+    final canCreate = authVM.currentUser?.role != UserRole.client;
 
     return Scaffold(
       body: RefreshIndicator(
@@ -77,11 +81,12 @@ class _TaskListViewState extends State<TaskListView> {
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: _showCreateDialog,
-                    icon: const Icon(Icons.add_rounded, size: 20),
-                    label: const Text('New Task'),
-                  ),
+                  if (canCreate)
+                    ElevatedButton.icon(
+                      onPressed: _showCreateDialog,
+                      icon: const Icon(Icons.add_rounded, size: 20),
+                      label: const Text('New Task'),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),

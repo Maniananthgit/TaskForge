@@ -55,3 +55,4 @@ class SlidingWindowRateLimiter:
 auth_rate_limiter = SlidingWindowRateLimiter(requests_per_minute=20, name="Authentication")
 invite_rate_limiter = SlidingWindowRateLimiter(requests_per_minute=30, name="User Invitation")
 password_rate_limiter = SlidingWindowRateLimiter(requests_per_minute=10, name="Password Operations")
+

@@ -13,10 +13,17 @@ class CommentService {
     return list.map((c) => CommentModel.fromJson(c as Map<String, dynamic>)).toList();
   }
 
-  Future<CommentModel> addComment({required int taskId, required String content}) async {
+  Future<CommentModel> addComment({
+    required int taskId,
+    required String content,
+    bool isInternal = false,
+  }) async {
     final response = await _apiClient.post(
       ApiConstants.taskComments(taskId),
-      body: {'content': content},
+      body: {
+        'content': content,
+        'is_internal': isInternal,
+      },
     );
     return CommentModel.fromJson(response as Map<String, dynamic>);
   }
