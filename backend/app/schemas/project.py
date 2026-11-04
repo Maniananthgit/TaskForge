@@ -45,6 +45,7 @@ class ProjectUpdate(BaseModel):
     due_date: Optional[datetime] = None
     budget_hours: Optional[float] = None
     client_id: Optional[int] = None
+    owner_id: Optional[int] = None
 
 
 class ProjectResponse(ProjectBase):

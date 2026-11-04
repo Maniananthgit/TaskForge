@@ -139,6 +139,9 @@ class ProjectService:
             raise PermissionDeniedException("You do not have permission to edit this project.")
 
         update_data = project_in.model_dump(exclude_unset=True)
+        if "owner_id" in update_data and update_data["owner_id"] is not None and update_data["owner_id"] != project.owner_id:
+            if not is_admin(current_user):
+                raise PermissionDeniedException("Only Admins can transfer project ownership.")
         return project_repo.update(db, db_obj=project, obj_in=update_data)
 
     def delete_project(self, db: Session, *, project_id: int, current_user: User) -> None:
