@@ -170,3 +170,61 @@ def dev_token(dev_user: User) -> str:
 @pytest.fixture
 def dev_token_headers(dev_token: str) -> dict:
     return {"Authorization": f"Bearer {dev_token}"}
+
+
+@pytest.fixture
+def employee_user(db: Session) -> User:
+    emp = User(
+        email="employee_test@taskforge.internal",
+        hashed_password=get_password_hash("Emp123!"),
+        full_name="Employee Tester",
+        role=UserRole.EMPLOYEE,
+        is_active=True
+    )
+    db.add(emp)
+    db.commit()
+    db.refresh(emp)
+    return emp
+
+
+@pytest.fixture
+def employee_token(employee_user: User) -> str:
+    return create_access_token(
+        subject=employee_user.id,
+        role=employee_user.role.value,
+        email=employee_user.email
+    )
+
+
+@pytest.fixture
+def employee_token_headers(employee_token: str) -> dict:
+    return {"Authorization": f"Bearer {employee_token}"}
+
+
+@pytest.fixture
+def client_user(db: Session) -> User:
+    cli = User(
+        email="client_test@taskforge.internal",
+        hashed_password=get_password_hash("Client123!"),
+        full_name="Client Tester",
+        role=UserRole.CLIENT,
+        is_active=True
+    )
+    db.add(cli)
+    db.commit()
+    db.refresh(cli)
+    return cli
+
+
+@pytest.fixture
+def client_token(client_user: User) -> str:
+    return create_access_token(
+        subject=client_user.id,
+        role=client_user.role.value,
+        email=client_user.email
+    )
+
+
+@pytest.fixture
+def client_token_headers(client_token: str) -> dict:
+    return {"Authorization": f"Bearer {client_token}"}

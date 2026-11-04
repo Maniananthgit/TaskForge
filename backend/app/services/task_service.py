@@ -11,6 +11,17 @@ from app.repositories.task_repository import task_repo
 from app.repositories.project_repository import project_repo
 from app.repositories.user_repository import user_repo
 from app.services.notification_service import notification_service
+from app.core.permissions import (
+    is_admin,
+    is_client,
+    can_view_project,
+    can_view_task,
+    can_create_task,
+    can_update_task,
+    can_update_task_status,
+    can_delete_task,
+    can_view_comment
+)
 
 
 def is_overdue_check(due_date: Optional[datetime], status: TaskStatus) -> bool:
@@ -22,9 +33,15 @@ def is_overdue_check(due_date: Optional[datetime], status: TaskStatus) -> bool:
 
 
 class TaskService:
-    def _to_response(self, task: Task) -> TaskResponse:
+    def _to_response(self, task: Task, current_user: Optional[User] = None) -> TaskResponse:
         is_overdue = is_overdue_check(task.due_date, task.status)
-        comments_count = len(task.comments) if task.comments else 0
+        
+        # If client, count only client-visible comments
+        if current_user and is_client(current_user):
+            visible_comments = [c for c in (task.comments or []) if not getattr(c, "is_internal", False)]
+            comments_count = len(visible_comments)
+        else:
+            comments_count = len(task.comments) if task.comments else 0
 
         return TaskResponse(
             id=task.id,
@@ -40,6 +57,7 @@ class TaskService:
             creator=task.creator,
             assignee_id=task.assignee_id,
             assignee=task.assignee,
+            is_client_visible=getattr(task, "is_client_visible", True),
             is_overdue=is_overdue,
             comments_count=comments_count,
             created_at=task.created_at,
@@ -60,6 +78,23 @@ class TaskService:
         skip: int = 0,
         limit: int = 20
     ) -> Tuple[List[TaskResponse], int]:
+        allowed_project_ids = None
+        client_visible_only = False
+
+        if not is_admin(current_user):
+            # Restrict to projects the current user has access to
+            accessible_projects, _ = project_repo.filter_projects(
+                db, user_id=current_user.id, limit=10000
+            )
+            allowed_project_ids = [p.id for p in accessible_projects]
+
+            if is_client(current_user):
+                client_visible_only = True
+
+            # If user explicitly requested a project_id they cannot access, return empty
+            if project_id and project_id not in allowed_project_ids:
+                return [], 0
+
         tasks, total = task_repo.filter_tasks(
             db,
             project_id=project_id,
@@ -68,11 +103,13 @@ class TaskService:
             priority=priority,
             search=search,
             overdue_only=overdue_only,
+            allowed_project_ids=allowed_project_ids,
+            client_visible_only=client_visible_only,
             skip=skip,
             limit=limit
         )
 
-        responses = [self._to_response(t) for t in tasks]
+        responses = [self._to_response(t, current_user=current_user) for t in tasks]
         return responses, total
 
     def get_task_by_id(self, db: Session, *, task_id: int, current_user: User) -> TaskDetailResponse:
@@ -80,17 +117,33 @@ class TaskService:
         if not task:
             raise EntityNotFoundException("Task", task_id)
 
-        base_res = self._to_response(task)
+        # IDOR prevention: Validate user has access to this task and project
+        if not can_view_task(current_user, task):
+            raise PermissionDeniedException("You are not authorized to view this task.")
+
+        base_res = self._to_response(task, current_user=current_user)
+
+        # Filter comments for client isolation
+        raw_comments = task.comments or []
+        if is_client(current_user):
+            filtered_comments = [c for c in raw_comments if not getattr(c, "is_internal", False)]
+        else:
+            filtered_comments = raw_comments
+
         return TaskDetailResponse(
             **base_res.model_dump(),
-            comments=task.comments,
-            history=task.history
+            comments=filtered_comments,
+            history=task.history or []
         )
 
     def create_task(self, db: Session, *, task_in: TaskCreate, current_user: User) -> Task:
         project = project_repo.get(db, id=task_in.project_id)
         if not project:
             raise EntityNotFoundException("Project", task_in.project_id)
+
+        # Validate permission
+        if not can_create_task(current_user, project):
+            raise PermissionDeniedException("You do not have permission to create tasks in this project.")
 
         task_data = task_in.model_dump()
         task_data["creator_id"] = current_user.id
@@ -127,6 +180,10 @@ class TaskService:
         if not task:
             raise EntityNotFoundException("Task", task_id)
 
+        # Validate permission
+        if not can_update_task(current_user, task):
+            raise PermissionDeniedException("You do not have permission to edit this task.")
+
         update_data = task_in.model_dump(exclude_unset=True)
 
         # Log specific field changes
@@ -162,6 +219,10 @@ class TaskService:
         task = task_repo.get(db, id=task_id)
         if not task:
             raise EntityNotFoundException("Task", task_id)
+
+        # Validate permission
+        if not can_update_task_status(current_user, task):
+            raise PermissionDeniedException("You are not authorized to update the status of this task.")
 
         old_status = task.status
         new_status = status_in.status
@@ -200,8 +261,8 @@ class TaskService:
         if not task:
             raise EntityNotFoundException("Task", task_id)
 
-        if current_user.role == UserRole.DEVELOPER and task.creator_id != current_user.id:
-            raise PermissionDeniedException("Only the Task Creator, Project Manager, or Admin can delete this task.")
+        if not can_delete_task(current_user, task):
+            raise PermissionDeniedException("You do not have permission to delete this task.")
 
         task_repo.remove(db, id=task_id)
 

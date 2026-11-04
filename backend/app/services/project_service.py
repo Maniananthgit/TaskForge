@@ -8,6 +8,14 @@ from app.models.enums import UserRole, ProjectStatus, ProjectPriority
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectDetailResponse, ProjectMemberCreate
 from app.repositories.project_repository import project_repo
 from app.repositories.user_repository import user_repo
+from app.core.permissions import (
+    is_admin,
+    can_view_project,
+    can_create_project,
+    can_update_project,
+    can_delete_project,
+    can_manage_project_members
+)
 
 
 class ProjectService:
@@ -22,8 +30,9 @@ class ProjectService:
         skip: int = 0,
         limit: int = 20
     ) -> Tuple[List[ProjectResponse], int]:
-        # Admin and Project Manager can view all projects; Developers view projects they own or are members of
-        user_filter_id = None if current_user.role in [UserRole.ADMIN, UserRole.PROJECT_MANAGER] else current_user.id
+        # Only Admins view all projects across the company.
+        # Project Managers, Employees, and Clients are strictly scoped to their assigned projects.
+        user_filter_id = None if is_admin(current_user) else current_user.id
 
         projects, total = project_repo.filter_projects(
             db,
@@ -49,6 +58,8 @@ class ProjectService:
                 budget_hours=p.budget_hours,
                 owner_id=p.owner_id,
                 owner=p.owner,
+                client_id=getattr(p, "client_id", None),
+                client=getattr(p, "client", None),
                 tasks_count=progress["total_tasks"],
                 completed_tasks_count=progress["completed_tasks"],
                 progress_percentage=progress["progress_percentage"],
@@ -65,11 +76,9 @@ class ProjectService:
         if not project:
             raise EntityNotFoundException("Project", project_id)
 
-        # Access verification
-        if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
-            is_member = any(m.user_id == current_user.id for m in project.members)
-            if project.owner_id != current_user.id and not is_member:
-                raise PermissionDeniedException("You are not authorized to view this project.")
+        # Centralized RBAC validation to prevent IDOR
+        if not can_view_project(current_user, project):
+            raise PermissionDeniedException("You are not authorized to view this project.")
 
         progress = project_repo.get_progress_data(db, project.id)
         return ProjectDetailResponse(
@@ -83,6 +92,8 @@ class ProjectService:
             budget_hours=project.budget_hours,
             owner_id=project.owner_id,
             owner=project.owner,
+            client_id=getattr(project, "client_id", None),
+            client=getattr(project, "client", None),
             tasks_count=progress["total_tasks"],
             completed_tasks_count=progress["completed_tasks"],
             progress_percentage=progress["progress_percentage"],
@@ -93,8 +104,7 @@ class ProjectService:
         )
 
     def create_project(self, db: Session, *, project_in: ProjectCreate, current_user: User) -> Project:
-        # Admin and Project Manager can create projects
-        if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
+        if not can_create_project(current_user):
             raise PermissionDeniedException("Only Admins and Project Managers can create projects.")
 
         project_data = project_in.model_dump(exclude={"member_ids"})
@@ -125,8 +135,7 @@ class ProjectService:
         if not project:
             raise EntityNotFoundException("Project", project_id)
 
-        # Permission check
-        if current_user.role == UserRole.DEVELOPER and project.owner_id != current_user.id:
+        if not can_update_project(current_user, project):
             raise PermissionDeniedException("You do not have permission to edit this project.")
 
         update_data = project_in.model_dump(exclude_unset=True)
@@ -137,7 +146,7 @@ class ProjectService:
         if not project:
             raise EntityNotFoundException("Project", project_id)
 
-        if current_user.role != UserRole.ADMIN and project.owner_id != current_user.id:
+        if not can_delete_project(current_user, project):
             raise PermissionDeniedException("Only Admins or the Project Owner can delete this project.")
 
         project_repo.remove(db, id=project_id)
@@ -149,7 +158,7 @@ class ProjectService:
         if not project:
             raise EntityNotFoundException("Project", project_id)
 
-        if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER] and project.owner_id != current_user.id:
+        if not can_manage_project_members(current_user, project):
             raise PermissionDeniedException("Permission denied to manage project members.")
 
         user = user_repo.get(db, id=member_in.user_id)
@@ -181,7 +190,7 @@ class ProjectService:
         if not project:
             raise EntityNotFoundException("Project", project_id)
 
-        if current_user.role not in [UserRole.ADMIN, UserRole.PROJECT_MANAGER] and project.owner_id != current_user.id:
+        if not can_manage_project_members(current_user, project):
             raise PermissionDeniedException("Permission denied to remove members.")
 
         member = (

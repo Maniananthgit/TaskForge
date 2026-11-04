@@ -43,6 +43,10 @@ def list_users(
     current_user: User = Depends(get_current_user)
 ):
     """List users with server-side pagination, multi-criteria filtering, and search."""
+    if current_user.role == UserRole.CLIENT:
+        from app.core.exceptions import PermissionDeniedException
+        raise PermissionDeniedException("Clients are not permitted to list organization users.")
+
     # Only Admin can view soft-deleted records
     can_include_deleted = include_deleted and current_user.role == UserRole.ADMIN
     search_term = search if search is not None else query
@@ -120,6 +124,9 @@ def get_user_detail(
     current_user: User = Depends(get_current_user)
 ):
     """Get comprehensive user profile with project assignments, status, and last login."""
+    if current_user.role != UserRole.ADMIN and current_user.id != user_id:
+        from app.core.exceptions import PermissionDeniedException
+        raise PermissionDeniedException("You are not authorized to view other user details.")
     return user_service.get_user_detail(db, user_id=user_id)
 
 

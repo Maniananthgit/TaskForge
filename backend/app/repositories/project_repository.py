@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
+from sqlalchemy import or_, and_, func, select
 from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.task import Task
@@ -41,16 +41,16 @@ class ProjectRepository(BaseRepository[Project]):
             query = query.filter(Project.priority == priority)
 
         if user_id:
-            # User is either owner or member
-            member_project_ids = (
-                db.query(ProjectMember.project_id)
+            # User is either owner, designated client, or member
+            member_project_query = (
+                select(ProjectMember.project_id)
                 .filter(ProjectMember.user_id == user_id)
-                .subquery()
             )
             query = query.filter(
                 or_(
                     Project.owner_id == user_id,
-                    Project.id.in_(member_project_ids)
+                    Project.client_id == user_id,
+                    Project.id.in_(member_project_query)
                 )
             )
 

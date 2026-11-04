@@ -6,7 +6,6 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.common import MessageResponse
-from app.repositories.comment_repository import comment_repo
 from app.services.comment_service import comment_service
 
 router = APIRouter(tags=["Comments"])
@@ -18,8 +17,8 @@ def get_task_comments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all discussion comments for a task."""
-    return comment_repo.get_by_task(db, task_id=task_id)
+    """Get all discussion comments for a task (sanitized according to role)."""
+    return comment_service.get_comments(db, task_id=task_id, current_user=current_user)
 
 
 @router.post("/tasks/{task_id}/comments", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)

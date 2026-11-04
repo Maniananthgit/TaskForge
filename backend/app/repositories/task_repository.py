@@ -26,10 +26,18 @@ class TaskRepository(BaseRepository[Task]):
         priority: Optional[TaskPriority] = None,
         search: Optional[str] = None,
         overdue_only: bool = False,
+        allowed_project_ids: Optional[List[int]] = None,
+        client_visible_only: bool = False,
         skip: int = 0,
         limit: int = 20
     ) -> Tuple[List[Task], int]:
         query = db.query(Task)
+
+        if allowed_project_ids is not None:
+            query = query.filter(Task.project_id.in_(allowed_project_ids))
+
+        if client_visible_only:
+            query = query.filter(Task.is_client_visible.is_(True))
 
         if project_id:
             query = query.filter(Task.project_id == project_id)

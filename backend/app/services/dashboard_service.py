@@ -15,6 +15,7 @@ from app.schemas.dashboard import (
 from app.schemas.project import ProjectResponse
 from app.schemas.task import TaskResponse
 from app.repositories.project_repository import project_repo
+from app.core.permissions import is_admin, is_client
 
 
 def is_overdue(due_date, status) -> bool:
@@ -27,16 +28,22 @@ def is_overdue(due_date, status) -> bool:
 
 class DashboardService:
     def get_metrics(self, db: Session, *, current_user: User) -> DashboardMetricsResponse:
-
-        # Total projects query (if Developer, filter to relevant projects)
-        if current_user.role in [UserRole.ADMIN, UserRole.PROJECT_MANAGER]:
+        # Total projects query: Only ADMIN sees system-wide metrics.
+        # PM, Employee, and Client see strictly their authorized scope.
+        if is_admin(current_user):
             all_projects = db.query(Project).all()
             all_tasks = db.query(Task).all()
         else:
             projects_data, _ = project_repo.filter_projects(db, user_id=current_user.id, limit=500)
             all_projects = projects_data
             project_ids = [p.id for p in all_projects]
-            all_tasks = db.query(Task).filter(Task.project_id.in_(project_ids)).all() if project_ids else []
+            if project_ids:
+                task_query = db.query(Task).filter(Task.project_id.in_(project_ids))
+                if is_client(current_user):
+                    task_query = task_query.filter(Task.is_client_visible.is_(True))
+                all_tasks = task_query.all()
+            else:
+                all_tasks = []
 
         total_projects = len(all_projects)
         total_tasks = len(all_tasks)
@@ -99,6 +106,7 @@ class DashboardService:
                 creator=t.creator,
                 assignee_id=t.assignee_id,
                 assignee=t.assignee,
+                is_client_visible=getattr(t, "is_client_visible", True),
                 is_overdue=is_overdue(t.due_date, t.status),
                 comments_count=len(t.comments) if t.comments else 0,
                 created_at=t.created_at,
@@ -121,6 +129,8 @@ class DashboardService:
                 budget_hours=p.budget_hours,
                 owner_id=p.owner_id,
                 owner=p.owner,
+                client_id=getattr(p, "client_id", None),
+                client=getattr(p, "client", None),
                 tasks_count=len([t for t in all_tasks if t.project_id == p.id]),
                 completed_tasks_count=len([t for t in all_tasks if t.project_id == p.id and t.status == TaskStatus.DONE]),
                 progress_percentage=round((len([t for t in all_tasks if t.project_id == p.id and t.status == TaskStatus.DONE]) / len([t for t in all_tasks if t.project_id == p.id]) * 100), 1) if [t for t in all_tasks if t.project_id == p.id] else 0.0,
