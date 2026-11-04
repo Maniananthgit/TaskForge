@@ -1,5 +1,5 @@
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func, select
 from app.models.project import Project
 from app.models.project_member import ProjectMember
@@ -55,7 +55,13 @@ class ProjectRepository(BaseRepository[Project]):
             )
 
         total = query.count()
-        projects = query.order_by(Project.created_at.desc()).offset(skip).limit(limit).all()
+        projects = (
+            query.options(joinedload(Project.owner), joinedload(Project.client))
+            .order_by(Project.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return projects, total
 
     def get_progress_data(self, db: Session, project_id: int) -> dict:

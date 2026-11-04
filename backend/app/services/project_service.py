@@ -8,6 +8,7 @@ from app.models.enums import UserRole, ProjectStatus, ProjectPriority
 from app.schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse, ProjectDetailResponse, ProjectMemberCreate
 from app.repositories.project_repository import project_repo
 from app.repositories.user_repository import user_repo
+from app.services.audit_service import audit_service
 from app.core.permissions import (
     is_admin,
     can_view_project,
@@ -184,6 +185,20 @@ class ProjectService:
         db.add(member)
         db.commit()
         db.refresh(member)
+
+        # Audit log member assignment
+        audit_service.log_action(
+            db,
+            actor_id=current_user.id,
+            target_user_id=member_in.user_id,
+            action="project_member_added",
+            details={
+                "project_id": project_id,
+                "project_title": project.title,
+                "role_in_project": member_in.role_in_project
+            }
+        )
+
         return member
 
     def remove_member(
@@ -206,6 +221,18 @@ class ProjectService:
 
         db.delete(member)
         db.commit()
+
+        # Audit log member removal
+        audit_service.log_action(
+            db,
+            actor_id=current_user.id,
+            target_user_id=user_id,
+            action="project_member_removed",
+            details={
+                "project_id": project_id,
+                "project_title": project.title
+            }
+        )
 
 
 project_service = ProjectService()

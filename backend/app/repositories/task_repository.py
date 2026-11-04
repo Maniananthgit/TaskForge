@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_, and_
 from app.models.task import Task
 from app.models.task_history import TaskHistory
@@ -71,7 +71,17 @@ class TaskRepository(BaseRepository[Task]):
             )
 
         total = query.count()
-        tasks = query.order_by(Task.due_date.asc().nullslast(), Task.created_at.desc()).offset(skip).limit(limit).all()
+        tasks = (
+            query.options(
+                joinedload(Task.assignee),
+                joinedload(Task.creator),
+                selectinload(Task.comments)
+            )
+            .order_by(Task.due_date.asc().nullslast(), Task.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
         return tasks, total
 
     def log_change(

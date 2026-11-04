@@ -18,6 +18,7 @@ from app.models.revoked_token import RevokedToken
 from app.models.enums import UserRole, UserStatus
 from app.schemas.user import UserCreate, UserUpdate, Token, UserResponse
 from app.repositories.user_repository import user_repo
+from app.services.audit_service import audit_service
 from app.core.logging import logger
 
 
@@ -33,6 +34,16 @@ class AuthService:
 
         user = user_repo.create(db, obj_in=user_data)
         logger.info(f"Registered new user {user.email} (ID: {user.id}) with role {user.role}")
+        try:
+            audit_service.log_action(
+                db,
+                actor_id=user.id,
+                target_user_id=user.id,
+                action="user_registered",
+                details={"email": user.email, "role": user.role.value if hasattr(user.role, 'value') else str(user.role)}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to record registration audit log: {e}")
         return user
 
     def authenticate_user(self, db: Session, email: str, password: str) -> Token:
@@ -164,6 +175,16 @@ class AuthService:
         user.hashed_password = get_password_hash(new_password)
         db.commit()
         logger.info(f"User {user.id} ({user.email}) changed their password successfully.")
+        try:
+            audit_service.log_action(
+                db,
+                actor_id=user.id,
+                target_user_id=user.id,
+                action="password_changed",
+                details={"email": user.email, "method": "self_service"}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to record password change audit log: {e}")
 
     def update_profile(self, db: Session, user: User, update_in: UserUpdate) -> User:
         update_data = update_in.model_dump(exclude_unset=True)
