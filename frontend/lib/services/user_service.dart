@@ -82,6 +82,7 @@ class UserService {
     required String fullName,
     required UserRole role,
     String? phoneNumber,
+    String? company,
     String? department,
     String? jobTitle,
     List<int>? assignedProjectIds,
@@ -91,6 +92,7 @@ class UserService {
       'full_name': fullName.trim(),
       'role': role.toApiString(),
       if (phoneNumber != null && phoneNumber.trim().isNotEmpty) 'phone_number': phoneNumber.trim(),
+      if (company != null && company.trim().isNotEmpty) 'company': company.trim(),
       if (department != null && department.trim().isNotEmpty) 'department': department.trim(),
       if (jobTitle != null && jobTitle.trim().isNotEmpty) 'job_title': jobTitle.trim(),
       if (assignedProjectIds != null && assignedProjectIds.isNotEmpty)
@@ -112,6 +114,7 @@ class UserService {
     int userId, {
     String? fullName,
     String? phoneNumber,
+    String? company,
     String? department,
     String? jobTitle,
     String? avatarUrl,
@@ -119,6 +122,7 @@ class UserService {
     final body = <String, dynamic>{
       if (fullName != null) 'full_name': fullName.trim(),
       if (phoneNumber != null) 'phone_number': phoneNumber.trim(),
+      if (company != null) 'company': company.trim(),
       if (department != null) 'department': department.trim(),
       if (jobTitle != null) 'job_title': jobTitle.trim(),
       if (avatarUrl != null) 'avatar_url': avatarUrl.trim(),

@@ -79,6 +79,7 @@ class MockUserRepository implements UserRepository {
     required String fullName,
     required UserRole role,
     String? phoneNumber,
+    String? company,
     String? department,
     String? jobTitle,
     List<int>? assignedProjectIds,
@@ -89,6 +90,7 @@ class MockUserRepository implements UserRepository {
       fullName: fullName,
       role: role,
       status: UserStatus.pendingInvitation,
+      company: company ?? 'TaskForge Technologies',
     );
     users.add(newUser);
     return ApiResponse.success(newUser, message: 'Invitation issued');

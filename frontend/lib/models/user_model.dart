@@ -136,6 +136,7 @@ class UserModel {
   final UserStatus status;
   final bool isActive;
   final String? phoneNumber;
+  final String? company;
   final String? department;
   final String? jobTitle;
   final String? avatarUrl;
@@ -156,6 +157,7 @@ class UserModel {
     this.status = UserStatus.active,
     this.isActive = true,
     this.phoneNumber,
+    this.company = 'TaskForge Technologies',
     this.department,
     this.jobTitle,
     this.avatarUrl,
@@ -190,6 +192,7 @@ class UserModel {
       status: userStatus,
       isActive: json['is_active'] as bool? ?? (userStatus == UserStatus.active),
       phoneNumber: json['phone_number'] as String?,
+      company: json['company'] as String? ?? 'TaskForge Technologies',
       department: json['department'] as String?,
       jobTitle: json['job_title'] as String?,
       avatarUrl: json['avatar_url'] as String?,
@@ -215,6 +218,7 @@ class UserModel {
       'status': status.toApiString(),
       'is_active': isActive,
       'phone_number': phoneNumber,
+      'company': company,
       'department': department,
       'job_title': jobTitle,
       'avatar_url': avatarUrl,
@@ -237,6 +241,7 @@ class UserModel {
     UserStatus? status,
     bool? isActive,
     String? phoneNumber,
+    String? company,
     String? department,
     String? jobTitle,
     String? avatarUrl,
@@ -257,6 +262,7 @@ class UserModel {
       status: status ?? this.status,
       isActive: isActive ?? this.isActive,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      company: company ?? this.company,
       department: department ?? this.department,
       jobTitle: jobTitle ?? this.jobTitle,
       avatarUrl: avatarUrl ?? this.avatarUrl,

@@ -134,6 +134,7 @@ class UserService:
             status=user.status,
             is_active=user.is_active,
             phone_number=user.phone_number,
+            company=user.company,
             department=user.department,
             job_title=user.job_title,
             avatar_url=user.avatar_url,
@@ -173,6 +174,7 @@ class UserService:
             status=UserStatus.PENDING_INVITATION,
             is_active=False,
             phone_number=invite_in.phone_number,
+            company=invite_in.company,
             department=invite_in.department,
             job_title=invite_in.job_title,
         )
@@ -395,6 +397,10 @@ class UserService:
         if update_in.phone_number is not None and update_in.phone_number != user.phone_number:
             changes["phone_number"] = {"old": user.phone_number, "new": update_in.phone_number}
             user.phone_number = update_in.phone_number
+
+        if update_in.company is not None and update_in.company != user.company:
+            changes["company"] = {"old": user.company, "new": update_in.company}
+            user.company = update_in.company
 
         if update_in.department is not None and update_in.department != user.department:
             changes["department"] = {"old": user.department, "new": update_in.department}

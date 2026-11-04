@@ -18,6 +18,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _fullNameController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _companyController;
   late final TextEditingController _departmentController;
   late final TextEditingController _jobTitleController;
   bool _isSubmitting = false;
@@ -27,6 +28,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
     super.initState();
     _fullNameController = TextEditingController(text: widget.user.fullName);
     _phoneController = TextEditingController(text: widget.user.phoneNumber ?? '');
+    _companyController = TextEditingController(text: widget.user.company ?? 'TaskForge Technologies');
     _departmentController = TextEditingController(text: widget.user.department ?? '');
     _jobTitleController = TextEditingController(text: widget.user.jobTitle ?? '');
   }
@@ -35,6 +37,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
   void dispose() {
     _fullNameController.dispose();
     _phoneController.dispose();
+    _companyController.dispose();
     _departmentController.dispose();
     _jobTitleController.dispose();
     super.dispose();
@@ -50,6 +53,7 @@ class _EditUserDialogState extends State<EditUserDialog> {
       widget.user.id,
       fullName: _fullNameController.text.trim(),
       phoneNumber: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+      company: _companyController.text.trim().isNotEmpty ? _companyController.text.trim() : null,
       department: _departmentController.text.trim().isNotEmpty ? _departmentController.text.trim() : null,
       jobTitle: _jobTitleController.text.trim().isNotEmpty ? _jobTitleController.text.trim() : null,
     );
@@ -119,6 +123,17 @@ class _EditUserDialogState extends State<EditUserDialog> {
                   prefixIcon: Icon(Icons.badge_outlined, size: 20),
                 ),
                 validator: (v) => v == null || v.trim().isEmpty ? 'Full name is required' : null,
+              ),
+              const SizedBox(height: 16),
+
+              Text('Company / Organization', style: AppTextStyles.bodyMedium(context)),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: _companyController,
+                decoration: const InputDecoration(
+                  hintText: 'e.g. TaskForge Technologies',
+                  prefixIcon: Icon(Icons.apartment_rounded, size: 20),
+                ),
               ),
               const SizedBox(height: 16),
 

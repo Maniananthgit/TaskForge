@@ -16,6 +16,7 @@ class User(Base, TimestampMixin):
     status = Column(Enum(UserStatus), default=UserStatus.ACTIVE, nullable=False, index=True)
     is_active = Column(Boolean, default=True, nullable=False)
     phone_number = Column(String(50), nullable=True)
+    company = Column(String(100), default="TaskForge Technologies", nullable=True)
     department = Column(String(100), nullable=True)
     job_title = Column(String(100), nullable=True)
     avatar_url = Column(String(500), nullable=True)

@@ -92,6 +92,7 @@ def seed_initial_data():
                     status=u_data["status"],
                     is_active=u_data.get("is_active", True),
                     phone_number=u_data["phone_number"],
+                    company="TaskForge Technologies",
                     department=u_data["department"],
                     job_title=u_data["job_title"],
                     last_login_at=now,

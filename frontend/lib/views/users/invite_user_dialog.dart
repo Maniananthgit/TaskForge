@@ -18,6 +18,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _companyController = TextEditingController(text: 'TaskForge Technologies');
   final _departmentController = TextEditingController();
   final _jobTitleController = TextEditingController();
 
@@ -38,6 +39,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     _fullNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _companyController.dispose();
     _departmentController.dispose();
     _jobTitleController.dispose();
     super.dispose();
@@ -54,6 +56,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       fullName: _fullNameController.text.trim(),
       role: _selectedRole,
       phoneNumber: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+      company: _companyController.text.trim().isNotEmpty ? _companyController.text.trim() : null,
       department: _departmentController.text.trim().isNotEmpty ? _departmentController.text.trim() : null,
       jobTitle: _jobTitleController.text.trim().isNotEmpty ? _jobTitleController.text.trim() : null,
       assignedProjectIds: _selectedProjectIds.isNotEmpty ? _selectedProjectIds : null,
@@ -219,6 +222,18 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                         onChanged: (v) {
                           if (v != null) setState(() => _selectedRole = v);
                         },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Company / Organization
+                      Text('Company / Organization', style: AppTextStyles.bodyMedium(context)),
+                      const SizedBox(height: 6),
+                      TextFormField(
+                        controller: _companyController,
+                        decoration: const InputDecoration(
+                          hintText: 'e.g. TaskForge Technologies',
+                          prefixIcon: Icon(Icons.apartment_rounded, size: 20),
+                        ),
                       ),
                       const SizedBox(height: 16),
 

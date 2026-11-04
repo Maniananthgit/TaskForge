@@ -721,14 +721,17 @@ class _UserManagementViewState extends State<UserManagementView> {
                                   ),
                                 ),
 
-                                // Department & Title
+                                // Department, Title & Company
                                 DataCell(
                                   Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(user.jobTitle ?? '—', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                      Text(user.department ?? '—', style: AppTextStyles.caption(context)),
+                                      Text(
+                                        '${user.company ?? "TaskForge"} • ${user.department ?? "Engineering"}',
+                                        style: AppTextStyles.caption(context),
+                                      ),
                                     ],
                                   ),
                                 ),

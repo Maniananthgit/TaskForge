@@ -129,6 +129,7 @@ def setup_and_seed(database_url: str):
                     status=u_data["status"],
                     is_active=u_data.get("is_active", True),
                     phone_number=u_data["phone_number"],
+                    company="TaskForge Technologies",
                     department=u_data["department"],
                     job_title=u_data["job_title"],
                     last_login_at=now,
@@ -288,3 +289,4 @@ if __name__ == "__main__":
         target_url = settings.DATABASE_URL
 
     setup_and_seed(target_url)
+

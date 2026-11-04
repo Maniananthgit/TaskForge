@@ -11,6 +11,7 @@ class UserBase(BaseModel):
     status: UserStatus = UserStatus.ACTIVE
     is_active: bool = True
     phone_number: Optional[str] = None
+    company: Optional[str] = "TaskForge Technologies"
     department: Optional[str] = None
     job_title: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -22,6 +23,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=6, description="Password with minimum 6 characters")
     role: UserRole = UserRole.DEVELOPER
     phone_number: Optional[str] = None
+    company: Optional[str] = "TaskForge Technologies"
     department: Optional[str] = None
     job_title: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -32,6 +34,7 @@ class UserInviteRequest(BaseModel):
     full_name: str
     role: UserRole = UserRole.DEVELOPER
     phone_number: Optional[str] = None
+    company: Optional[str] = "TaskForge Technologies"
     department: Optional[str] = None
     job_title: Optional[str] = None
     assigned_project_ids: Optional[List[int]] = None
@@ -69,6 +72,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
     phone_number: Optional[str] = None
+    company: Optional[str] = None
     department: Optional[str] = None
     job_title: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -103,6 +107,7 @@ class UserResponse(BaseModel):
     status: UserStatus
     is_active: bool
     phone_number: Optional[str] = None
+    company: Optional[str] = "TaskForge Technologies"
     department: Optional[str] = None
     job_title: Optional[str] = None
     avatar_url: Optional[str] = None
