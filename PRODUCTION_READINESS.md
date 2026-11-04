@@ -112,3 +112,4 @@ To achieve full 24/7 cloud persistence on the live web URL:
    - In `https://github.com/Maniananthgit/TaskForge/settings/secrets/actions`:
      - `API_BASE_URL`: Public HTTPS backend URL (e.g. `https://taskforge-api.onrender.com/api/v1` or Cloud Run URL).
      - `DATABASE_URL`: Your Neon PostgreSQL connection string.
+

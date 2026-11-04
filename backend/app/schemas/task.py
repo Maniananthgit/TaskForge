@@ -16,6 +16,7 @@ class TaskBase(BaseModel):
     estimated_hours: float = 0.0
     actual_hours: float = 0.0
     assignee_id: Optional[int] = None
+    is_client_visible: bool = True
 
 
 class TaskCreate(TaskBase):
@@ -31,6 +32,7 @@ class TaskUpdate(BaseModel):
     estimated_hours: Optional[float] = None
     actual_hours: Optional[float] = None
     assignee_id: Optional[int] = None
+    is_client_visible: Optional[bool] = None
 
 
 class TaskStatusUpdate(BaseModel):

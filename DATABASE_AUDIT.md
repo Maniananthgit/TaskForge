@@ -110,3 +110,4 @@ The schema contains 11 core tables with valid primary keys and basic foreign key
   1. Stamp the production database with baseline revision: `alembic stamp 001_user_mgmt`.
   2. Author a clean, forward-only, idempotent migration `002_add_four_roles_and_client_isolation.py`.
   3. Ensure all table modifications use `IF NOT EXISTS` guards.
+

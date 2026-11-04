@@ -24,7 +24,8 @@ class User(Base, TimestampMixin):
     deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     # Relationships
-    owned_projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+    owned_projects = relationship("Project", foreign_keys="[Project.owner_id]", back_populates="owner", cascade="all, delete-orphan")
+    client_projects = relationship("Project", foreign_keys="[Project.client_id]", back_populates="client")
     project_memberships = relationship("ProjectMember", back_populates="user", cascade="all, delete-orphan")
     created_tasks = relationship("Task", foreign_keys="Task.creator_id", back_populates="creator")
     assigned_tasks = relationship("Task", foreign_keys="Task.assignee_id", back_populates="assignee")

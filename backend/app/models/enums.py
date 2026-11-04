@@ -4,7 +4,9 @@ import enum
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     PROJECT_MANAGER = "project_manager"
-    DEVELOPER = "developer"
+    EMPLOYEE = "employee"
+    CLIENT = "client"
+    DEVELOPER = "developer"  # Backward-compatible alias for employee
 
 
 class UserStatus(str, enum.Enum):

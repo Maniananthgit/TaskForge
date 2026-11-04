@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Enum, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, Enum, Float, ForeignKey, DateTime, Boolean, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.base import TimestampMixin
@@ -17,9 +17,15 @@ class Task(Base, TimestampMixin):
     due_date = Column(DateTime, nullable=True, index=True)
     estimated_hours = Column(Float, default=0.0, nullable=False)
     actual_hours = Column(Float, default=0.0, nullable=False)
+    is_client_visible = Column(Boolean, default=True, nullable=False, index=True)
 
-    creator_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    creator_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     assignee_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    __table_args__ = (
+        Index("idx_tasks_project_status", "project_id", "status"),
+        Index("idx_tasks_assignee_status", "assignee_id", "status"),
+    )
 
     # Relationships
     project = relationship("Project", back_populates="tasks")

@@ -140,3 +140,4 @@ The audit identified **4 High/Critical security vulnerabilities** and **3 Medium
 | **Update Task Status** | ✅ Yes | ✅ Yes | ✅ If Assignee / Member | ❌ Denied |
 | **View Internal Comments** | ✅ Yes | ✅ Yes | ✅ Yes | ❌ Blocked |
 | **Add Client Comments** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Permitted Tasks Only |
+

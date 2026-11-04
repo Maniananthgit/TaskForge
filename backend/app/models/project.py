@@ -17,10 +17,12 @@ class Project(Base, TimestampMixin):
     due_date = Column(DateTime, nullable=True, index=True)
     budget_hours = Column(Float, default=0.0, nullable=False)
 
-    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    client_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Relationships
-    owner = relationship("User", back_populates="owned_projects")
+    owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_projects")
+    client = relationship("User", foreign_keys=[client_id], back_populates="client_projects")
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
 

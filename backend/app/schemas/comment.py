@@ -6,6 +6,7 @@ from app.schemas.user import UserResponse
 
 class CommentCreate(BaseModel):
     content: str = Field(..., min_length=1)
+    is_internal: bool = False
 
 
 class CommentResponse(BaseModel):
@@ -14,6 +15,7 @@ class CommentResponse(BaseModel):
     author_id: int
     author: Optional[UserResponse] = None
     content: str
+    is_internal: bool = False
     created_at: datetime
     updated_at: datetime
 

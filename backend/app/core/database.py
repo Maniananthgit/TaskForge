@@ -5,19 +5,27 @@ from app.core.config import settings
 
 # Engine configuration with connection pooling for PostgreSQL
 connect_args = {}
+engine_kwargs = {"echo": False, "pool_pre_ping": True}
 db_url = settings.DATABASE_URL
 if "sqlite" in db_url:
     connect_args = {"check_same_thread": False}
-elif db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
-elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
-    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+else:
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    # Production-grade PostgreSQL pooling parameters
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_recycle": 1800,
+        "pool_timeout": 30,
+    })
 
 engine = create_engine(
     db_url,
-    echo=False,
     connect_args=connect_args,
-    pool_pre_ping=True
+    **engine_kwargs
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

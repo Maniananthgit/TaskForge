@@ -89,3 +89,4 @@ While the core user interface and basic REST API primitives are functioning, **t
 3. **Phase 4 — Authentication & Session**: Add automatic JWT refresh token interceptor, secure cookie strategy for web, and revoke expired tokens.
 4. **Phase 5 & 6 — Full Stack Hardening**: Secure all task and comment endpoints, prevent IDOR, and eliminate silent mock fallback in production mode.
 5. **Phase 7 to 11 — Testing & CI/CD**: End-to-end integration tests with PostgreSQL test database, GitHub Actions deployment verification, and performance profiling.
+

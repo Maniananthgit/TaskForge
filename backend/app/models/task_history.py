@@ -13,7 +13,7 @@ class TaskHistory(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
-    changed_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    changed_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     field_changed = Column(String(100), nullable=False)
     old_value = Column(Text, nullable=True)
     new_value = Column(Text, nullable=True)

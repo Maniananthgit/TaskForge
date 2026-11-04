@@ -73,3 +73,4 @@ The GitHub Actions workflow contains 5 sequential jobs triggered on push to `mai
 | **API Base URL** | `http://127.0.0.1:8000/api/v1` | `http://localhost:8000/api/v1` | Live Deployed Backend URL |
 | **Frontend URL** | `http://localhost:3000` | Local Web Server | `https://taskforge-pm-app.web.app` |
 | **Secrets Storage** | `.env` (gitignored) | GitHub Actions Secrets | Cloud Environment Variables |
+

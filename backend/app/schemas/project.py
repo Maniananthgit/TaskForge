@@ -29,6 +29,7 @@ class ProjectBase(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     budget_hours: float = 0.0
+    client_id: Optional[int] = None
 
 
 class ProjectCreate(ProjectBase):
@@ -43,12 +44,15 @@ class ProjectUpdate(BaseModel):
     start_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     budget_hours: Optional[float] = None
+    client_id: Optional[int] = None
 
 
 class ProjectResponse(ProjectBase):
     id: int
     owner_id: int
     owner: Optional[UserResponse] = None
+    client_id: Optional[int] = None
+    client: Optional[UserResponse] = None
     tasks_count: int = 0
     completed_tasks_count: int = 0
     progress_percentage: float = 0.0
