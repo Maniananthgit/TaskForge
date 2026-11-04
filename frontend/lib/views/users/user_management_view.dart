@@ -10,6 +10,7 @@ import '../../widgets/loading_view.dart';
 import '../../widgets/empty_view.dart';
 import 'invite_user_dialog.dart';
 import 'edit_user_dialog.dart';
+import '../tasks/task_create_dialog.dart';
 
 class UserManagementView extends StatefulWidget {
   const UserManagementView({super.key});
@@ -84,6 +85,21 @@ class _UserManagementViewState extends State<UserManagementView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('User profile updated successfully.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  void _showAssignTaskDialog(UserModel user) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => TaskCreateDialog(preselectedAssigneeId: user.id),
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task assigned to ${user.fullName} successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -737,6 +753,9 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         case 'details':
                                           context.go('/users/${user.id}');
                                           break;
+                                        case 'assign_task':
+                                          _showAssignTaskDialog(user);
+                                          break;
                                         case 'edit':
                                           _showEditDialog(user);
                                           break;
@@ -763,6 +782,14 @@ class _UserManagementViewState extends State<UserManagementView> {
                                         child: ListTile(
                                           leading: Icon(Icons.visibility_outlined, size: 18),
                                           title: Text('View Profile & Audit'),
+                                          dense: true,
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'assign_task',
+                                        child: ListTile(
+                                          leading: Icon(Icons.assignment_ind_outlined, size: 18, color: AppColors.primary),
+                                          title: Text('Assign Task'),
                                           dense: true,
                                         ),
                                       ),

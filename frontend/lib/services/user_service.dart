@@ -10,9 +10,14 @@ class UserService {
   UserService(this._apiClient);
 
   /// Backwards-compatible lightweight user fetch
-  Future<List<UserModel>> getUsers({String? query, UserRole? role}) async {
-    final params = <String, dynamic>{};
-    if (query != null && query.trim().isNotEmpty) params['search'] = query.trim();
+  Future<List<UserModel>> getUsers({String? query, UserRole? role, int limit = 100}) async {
+    final params = <String, dynamic>{
+      'limit': limit,
+    };
+    if (query != null && query.trim().isNotEmpty) {
+      params['query'] = query.trim();
+      params['search'] = query.trim();
+    }
     if (role != null) params['role'] = role.toApiString();
 
     final response = await _apiClient.get(ApiConstants.users, queryParameters: params);

@@ -10,6 +10,10 @@ import '../../widgets/loading_view.dart';
 import '../../widgets/error_view.dart';
 import 'edit_user_dialog.dart';
 import 'assign_project_dialog.dart';
+import '../../viewmodels/project_viewmodel.dart';
+import '../../viewmodels/task_viewmodel.dart';
+import '../../widgets/task_card.dart';
+import '../tasks/task_create_dialog.dart';
 
 class UserDetailView extends StatefulWidget {
   final int userId;
@@ -26,9 +30,12 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<UserViewModel>().loadUserDetail(widget.userId);
+      context.read<TaskViewModel>().fetchTasks();
+      context.read<ProjectViewModel>().fetchProjects();
+      context.read<ProjectViewModel>().fetchAvailableUsers();
     });
   }
 
@@ -84,6 +91,7 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
       context: context,
       builder: (_) => AssignProjectDialog(
         userId: user.id,
+        userName: user.fullName,
         existingProjectIds: existingIds,
       ),
     );
@@ -91,6 +99,22 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Project assigned successfully.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
+  }
+
+  void _showAssignTaskDialog(UserModel user) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => TaskCreateDialog(preselectedAssigneeId: user.id),
+    );
+    if (result == true && mounted) {
+      context.read<TaskViewModel>().fetchTasks();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task assigned to ${user.fullName} successfully!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -337,7 +361,9 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userVM = context.watch<UserViewModel>();
+    final taskVM = context.watch<TaskViewModel>();
     final user = userVM.selectedUser;
+    final userTasks = taskVM.tasks.where((t) => t.assigneeId == widget.userId).toList();
 
     if (userVM.isLoading && user == null) {
       return const Scaffold(body: LoadingView(message: 'Loading user details...'));
@@ -506,6 +532,11 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
                         spacing: 8,
                         runSpacing: 8,
                         children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.assignment_ind_outlined, size: 16),
+                            label: const Text('Assign Task'),
+                            onPressed: () => _showAssignTaskDialog(user),
+                          ),
                           OutlinedButton.icon(
                             icon: const Icon(Icons.edit_outlined, size: 16),
                             label: const Text('Edit Profile'),
@@ -604,6 +635,16 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
                   icon: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      const Icon(Icons.assignment_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Text('Assigned Tasks (${userTasks.length})'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  icon: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       const Icon(Icons.history_rounded, size: 18),
                       const SizedBox(width: 8),
                       Text('Security & Activity Audit (${userVM.selectedUserAuditLogs.length})'),
@@ -690,7 +731,62 @@ class _UserDetailViewState extends State<UserDetailView> with SingleTickerProvid
                     ],
                   ),
 
-                  // 2. Audit Trail Tab
+                  // 2. Assigned Tasks Tab
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Assigned Tasks', style: AppTextStyles.h2(context)),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.add_task_rounded, size: 18),
+                            label: const Text('Assign Task'),
+                            onPressed: () => _showAssignTaskDialog(user),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (userTasks.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(40),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.dividerColor),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.assignment_outlined, size: 48, color: Colors.grey),
+                              const SizedBox(height: 12),
+                              Text('No tasks currently assigned to this user.', style: AppTextStyles.bodyMedium(context)),
+                              const SizedBox(height: 6),
+                              Text('Assign tasks to track this employee\'s workspace execution.', style: AppTextStyles.caption(context)),
+                            ],
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: userTasks.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final task = userTasks[index];
+                              return TaskCard(
+                                task: task,
+                                onTap: () => context.go('/tasks/${task.id}'),
+                                onStatusChanged: (newStatus) {
+                                  context.read<TaskViewModel>().updateStatus(id: task.id, status: newStatus);
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+
+                  // 3. Audit Trail Tab
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

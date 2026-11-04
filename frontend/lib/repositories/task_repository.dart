@@ -3,6 +3,7 @@ import '../models/api_response.dart';
 import '../models/comment_model.dart';
 import '../models/task_history_model.dart';
 import '../models/task_model.dart';
+import '../models/user_model.dart';
 import '../services/comment_service.dart';
 import '../services/task_service.dart';
 
@@ -13,6 +14,54 @@ class TaskRepository {
   TaskRepository(this._taskService, this._commentService);
 
   bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
+
+  static final Map<int, UserModel> _demoUsersMap = {
+    1: UserModel(
+      id: 1,
+      email: 'admin@taskforge.internal',
+      fullName: 'Super Admin',
+      role: UserRole.admin,
+      status: UserStatus.active,
+      jobTitle: 'Principal Security Architect',
+      department: 'Platform Engineering',
+    ),
+    2: UserModel(
+      id: 2,
+      email: 'pm@taskforge.internal',
+      fullName: 'Elena Rostova',
+      role: UserRole.projectManager,
+      status: UserStatus.active,
+      jobTitle: 'Senior Technical Program Manager',
+      department: 'Product Operations',
+    ),
+    3: UserModel(
+      id: 3,
+      email: 'dev@taskforge.internal',
+      fullName: 'David Chen',
+      role: UserRole.developer,
+      status: UserStatus.active,
+      jobTitle: 'Senior Flutter Developer',
+      department: 'Frontend Engineering',
+    ),
+    4: UserModel(
+      id: 4,
+      email: 'sarah.connor@taskforge.internal',
+      fullName: 'Sarah Connor',
+      role: UserRole.developer,
+      status: UserStatus.pendingInvitation,
+      jobTitle: 'AppSec Engineer',
+      department: 'Security Operations',
+    ),
+    5: UserModel(
+      id: 5,
+      email: 'alex.rivera@taskforge.internal',
+      fullName: 'Alex Rivera',
+      role: UserRole.developer,
+      status: UserStatus.inactive,
+      jobTitle: 'QA Automation Engineer',
+      department: 'QA & Automation',
+    ),
+  };
 
   final List<TaskModel> _demoTasks = [
     TaskModel(
@@ -26,7 +75,9 @@ class TaskRepository {
       estimatedHours: 8.0,
       actualHours: 4.5,
       assigneeId: 3,
+      assignee: _demoUsersMap[3],
       creatorId: 1,
+      creator: _demoUsersMap[1],
     ),
     TaskModel(
       id: 102,
@@ -39,7 +90,9 @@ class TaskRepository {
       estimatedHours: 12.0,
       actualHours: 2.0,
       assigneeId: 3,
+      assignee: _demoUsersMap[3],
       creatorId: 2,
+      creator: _demoUsersMap[2],
     ),
     TaskModel(
       id: 103,
@@ -52,7 +105,9 @@ class TaskRepository {
       estimatedHours: 6.0,
       actualHours: 5.5,
       assigneeId: 1,
+      assignee: _demoUsersMap[1],
       creatorId: 2,
+      creator: _demoUsersMap[2],
     ),
     TaskModel(
       id: 104,
@@ -65,7 +120,9 @@ class TaskRepository {
       estimatedHours: 10.0,
       actualHours: 9.0,
       assigneeId: 2,
+      assignee: _demoUsersMap[2],
       creatorId: 1,
+      creator: _demoUsersMap[1],
     ),
   ];
 
@@ -154,6 +211,7 @@ class TaskRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        final assignedUser = assigneeId != null ? _demoUsersMap[assigneeId] : null;
         final newTask = TaskModel(
           id: _demoTasks.length + 101,
           projectId: projectId,
@@ -164,6 +222,7 @@ class TaskRepository {
           dueDate: dueDate,
           estimatedHours: estimatedHours,
           assigneeId: assigneeId,
+          assignee: assignedUser,
           createdAt: DateTime.now(),
         );
         _demoTasks.insert(0, newTask);
@@ -192,7 +251,9 @@ class TaskRepository {
             estimatedHours: current.estimatedHours,
             actualHours: current.actualHours,
             assigneeId: current.assigneeId,
+            assignee: current.assignee,
             creatorId: current.creatorId,
+            creator: current.creator,
           );
           _demoTasks[idx] = updated;
           return updated;
@@ -227,6 +288,35 @@ class TaskRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        final idx = _demoTasks.indexWhere((t) => t.id == id);
+        if (idx != -1) {
+          final cur = _demoTasks[idx];
+          final updatedAssigneeId = assigneeId ?? cur.assigneeId;
+          final updatedAssignee = updatedAssigneeId != null ? _demoUsersMap[updatedAssigneeId] : null;
+          final updated = TaskModel(
+            id: cur.id,
+            projectId: cur.projectId,
+            title: title ?? cur.title,
+            description: description ?? cur.description,
+            status: status ?? cur.status,
+            priority: priority ?? cur.priority,
+            dueDate: dueDate ?? cur.dueDate,
+            estimatedHours: estimatedHours ?? cur.estimatedHours,
+            actualHours: actualHours ?? cur.actualHours,
+            assigneeId: updatedAssigneeId,
+            assignee: updatedAssignee,
+            creatorId: cur.creatorId,
+            creator: cur.creator,
+            isOverdue: cur.isOverdue,
+            commentsCount: cur.commentsCount,
+            comments: cur.comments,
+            history: cur.history,
+            createdAt: cur.createdAt,
+            updatedAt: DateTime.now(),
+          );
+          _demoTasks[idx] = updated;
+          return updated;
+        }
         return getTaskById(id);
       }
       rethrow;

@@ -10,8 +10,9 @@ import '../../widgets/custom_text_field.dart';
 
 class TaskCreateDialog extends StatefulWidget {
   final int? preselectedProjectId;
+  final int? preselectedAssigneeId;
 
-  const TaskCreateDialog({super.key, this.preselectedProjectId});
+  const TaskCreateDialog({super.key, this.preselectedProjectId, this.preselectedAssigneeId});
 
   @override
   State<TaskCreateDialog> createState() => _TaskCreateDialogState();
@@ -32,14 +33,17 @@ class _TaskCreateDialogState extends State<TaskCreateDialog> {
   void initState() {
     super.initState();
     _selectedProjectId = widget.preselectedProjectId;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    _selectedAssigneeId = widget.preselectedAssigneeId;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final pVM = context.read<ProjectViewModel>();
       if (pVM.projects.isEmpty) {
-        pVM.fetchProjects();
+        await pVM.fetchProjects();
       }
-      pVM.fetchAvailableUsers();
-      if (_selectedProjectId == null && pVM.projects.isNotEmpty) {
-        setState(() => _selectedProjectId = pVM.projects.first.id);
+      await pVM.fetchAvailableUsers();
+      if (mounted) {
+        if (_selectedProjectId == null && pVM.projects.isNotEmpty) {
+          setState(() => _selectedProjectId = pVM.projects.first.id);
+        }
       }
     });
   }
@@ -193,17 +197,20 @@ class _TaskCreateDialogState extends State<TaskCreateDialog> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Assignee', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          const Text('Assignee (Employee)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<int?>(
                             value: _selectedAssigneeId,
                             hint: const Text('Unassigned'),
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
+                            ),
                             items: [
                               const DropdownMenuItem<int?>(value: null, child: Text('Unassigned')),
                               ...projectVM.availableUsers.map((u) {
                                 return DropdownMenuItem<int?>(
                                   value: u.id,
-                                  child: Text(u.fullName),
+                                  child: Text('${u.fullName} (${u.role.displayName})'),
                                 );
                               }),
                             ],

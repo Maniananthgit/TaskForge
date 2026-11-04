@@ -6,6 +6,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../models/task_model.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/project_viewmodel.dart';
 import '../../viewmodels/task_viewmodel.dart';
 import '../../widgets/status_badge.dart';
 import '../../widgets/priority_badge.dart';
@@ -32,6 +33,7 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
     _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TaskViewModel>().fetchTaskDetail(widget.taskId);
+      context.read<ProjectViewModel>().fetchAvailableUsers();
     });
   }
 
@@ -86,6 +88,7 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     final taskVM = context.watch<TaskViewModel>();
+    final projectVM = context.watch<ProjectViewModel>();
     final authVM = context.watch<AuthViewModel>();
     final user = authVM.currentUser;
     final task = taskVM.selectedTask;
@@ -187,25 +190,68 @@ class _TaskDetailViewState extends State<TaskDetailView> with SingleTickerProvid
                     const Divider(height: 1),
                     const SizedBox(height: 20),
 
-                    // Quick Status Transition Bar
-                    Row(
+                    // Quick Status & Assignee Bar
+                    Wrap(
+                      spacing: 24,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Change Status: ', style: AppTextStyles.bodyBold(context)),
-                        const SizedBox(width: 12),
-                        DropdownButton<TaskStatus>(
-                          value: task.status,
-                          underline: const SizedBox.shrink(),
-                          items: TaskStatus.values.map((s) {
-                            return DropdownMenuItem(
-                              value: s,
-                              child: Text(s.displayName),
-                            );
-                          }).toList(),
-                          onChanged: (newStatus) {
-                            if (newStatus != null) {
-                              taskVM.updateStatus(id: task.id, status: newStatus);
-                            }
-                          },
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Change Status: ', style: AppTextStyles.bodyBold(context)),
+                            const SizedBox(width: 8),
+                            DropdownButton<TaskStatus>(
+                              value: task.status,
+                              underline: const SizedBox.shrink(),
+                              items: TaskStatus.values.map((s) {
+                                return DropdownMenuItem(
+                                  value: s,
+                                  child: Text(s.displayName),
+                                );
+                              }).toList(),
+                              onChanged: (newStatus) {
+                                if (newStatus != null) {
+                                  taskVM.updateStatus(id: task.id, status: newStatus);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('Assign Employee: ', style: AppTextStyles.bodyBold(context)),
+                            const SizedBox(width: 8),
+                            DropdownButton<int?>(
+                              value: task.assigneeId,
+                              underline: const SizedBox.shrink(),
+                              hint: const Text('Unassigned'),
+                              items: [
+                                const DropdownMenuItem<int?>(value: null, child: Text('Unassigned')),
+                                ...projectVM.availableUsers.map((u) {
+                                  return DropdownMenuItem<int?>(
+                                    value: u.id,
+                                    child: Text('${u.fullName} (${u.role.displayName})'),
+                                  );
+                                }),
+                              ],
+                              onChanged: (newAssigneeId) async {
+                                final success = await taskVM.updateTask(
+                                  id: task.id,
+                                  assigneeId: newAssigneeId,
+                                );
+                                if (success && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Task assignee updated successfully.'),
+                                      backgroundColor: AppColors.success,
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ],
                     ),

@@ -114,7 +114,7 @@ class MockUserService implements UserService {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<List<UserModel>> getUsers({String? query, UserRole? role}) async {
+  Future<List<UserModel>> getUsers({String? query, UserRole? role, int limit = 100}) async {
     return [
       UserModel(id: 1, email: 'admin@taskforge.internal', fullName: 'Admin', role: UserRole.admin),
       UserModel(id: 2, email: 'dev@taskforge.internal', fullName: 'Developer', role: UserRole.developer),

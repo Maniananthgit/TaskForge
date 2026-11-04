@@ -32,6 +32,7 @@ def get_user_summary_metrics(
 @router.get("/", response_model=PaginatedUsersResponse)
 def list_users(
     query: Optional[str] = Query(None, description="Search by full name or email"),
+    search: Optional[str] = Query(None, description="Alternative alias for query/search"),
     role: Optional[UserRole] = Query(None, description="Filter by system role"),
     status_filter: Optional[UserStatus] = Query(None, alias="status", description="Filter by account status"),
     project_id: Optional[int] = Query(None, description="Filter by assigned project ID"),
@@ -44,12 +45,13 @@ def list_users(
     """List users with server-side pagination, multi-criteria filtering, and search."""
     # Only Admin can view soft-deleted records
     can_include_deleted = include_deleted and current_user.role == UserRole.ADMIN
+    search_term = search if search is not None else query
 
     users, total = user_service.get_users_paginated(
         db,
         skip=skip,
         limit=limit,
-        search=query,
+        search=search_term,
         role=role,
         status=status_filter,
         project_id=project_id,

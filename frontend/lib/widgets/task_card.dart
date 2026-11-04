@@ -148,21 +148,62 @@ class TaskCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                       ],
-                      if (task.assignee != null)
-                        CircleAvatar(
-                          radius: 12,
-                          backgroundColor: AppColors.primary.withOpacity(0.2),
-                          child: Text(
-                            task.assignee!.fullName.isNotEmpty
-                                ? task.assignee!.fullName[0].toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryLight,
-                            ),
+                      if (task.assignee != null) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 9,
+                                backgroundColor: AppColors.primary.withOpacity(0.25),
+                                child: Text(
+                                  task.assignee!.fullName.isNotEmpty
+                                      ? task.assignee!.fullName[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryLight,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                task.assignee!.fullName,
+                                style: AppTextStyles.caption(context).copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.person_outline_rounded, size: 12, color: Colors.grey),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Unassigned',
+                                style: AppTextStyles.caption(context).copyWith(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],

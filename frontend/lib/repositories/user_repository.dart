@@ -108,6 +108,34 @@ class UserRepository {
     ),
   ];
 
+  List<UserModel> get demoUsers => List.unmodifiable(_demoUsers);
+
+  Future<List<UserModel>> getUsers({String? query, UserRole? role}) async {
+    try {
+      final users = await _userService.getUsers(query: query, role: role);
+      if (users.isNotEmpty) {
+        return users;
+      }
+      return List<UserModel>.from(_demoUsers);
+    } catch (e) {
+      if (_isNetworkFailure(e)) {
+        var filtered = List<UserModel>.from(_demoUsers);
+        if (query != null && query.trim().isNotEmpty) {
+          final q = query.trim().toLowerCase();
+          filtered = filtered.where((u) =>
+            u.fullName.toLowerCase().contains(q) ||
+            u.email.toLowerCase().contains(q)
+          ).toList();
+        }
+        if (role != null) {
+          filtered = filtered.where((u) => u.role == role).toList();
+        }
+        return filtered;
+      }
+      return List<UserModel>.from(_demoUsers);
+    }
+  }
+
   Future<ApiResponse<PaginatedUsersResponse>> getUsersPaginated({
     int page = 1,
     int pageSize = 15,

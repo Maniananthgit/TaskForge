@@ -93,11 +93,67 @@ class ProjectViewModel extends ChangeNotifier {
     }
   }
 
+  static final List<UserModel> _fallbackDemoUsers = [
+    UserModel(
+      id: 1,
+      email: 'admin@taskforge.internal',
+      fullName: 'Super Admin',
+      role: UserRole.admin,
+      status: UserStatus.active,
+      jobTitle: 'Principal Security Architect',
+      department: 'Platform Engineering',
+    ),
+    UserModel(
+      id: 2,
+      email: 'pm@taskforge.internal',
+      fullName: 'Elena Rostova',
+      role: UserRole.projectManager,
+      status: UserStatus.active,
+      jobTitle: 'Senior Technical Program Manager',
+      department: 'Product Operations',
+    ),
+    UserModel(
+      id: 3,
+      email: 'dev@taskforge.internal',
+      fullName: 'David Chen',
+      role: UserRole.developer,
+      status: UserStatus.active,
+      jobTitle: 'Senior Flutter Developer',
+      department: 'Frontend Engineering',
+    ),
+    UserModel(
+      id: 4,
+      email: 'sarah.connor@taskforge.internal',
+      fullName: 'Sarah Connor',
+      role: UserRole.developer,
+      status: UserStatus.pendingInvitation,
+      jobTitle: 'AppSec Engineer',
+      department: 'Security Operations',
+    ),
+    UserModel(
+      id: 5,
+      email: 'alex.rivera@taskforge.internal',
+      fullName: 'Alex Rivera',
+      role: UserRole.developer,
+      status: UserStatus.inactive,
+      jobTitle: 'QA Automation Engineer',
+      department: 'QA & Automation',
+    ),
+  ];
+
   Future<void> fetchAvailableUsers() async {
     try {
-      _availableUsers = await _userService.getUsers();
+      final users = await _userService.getUsers();
+      if (users.isNotEmpty) {
+        _availableUsers = users;
+      } else {
+        _availableUsers = List<UserModel>.from(_fallbackDemoUsers);
+      }
       notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+      _availableUsers = List<UserModel>.from(_fallbackDemoUsers);
+      notifyListeners();
+    }
   }
 
   Future<bool> createProject({

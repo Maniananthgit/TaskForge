@@ -7,11 +7,13 @@ import '../../viewmodels/user_viewmodel.dart';
 
 class AssignProjectDialog extends StatefulWidget {
   final int userId;
+  final String? userName;
   final List<int> existingProjectIds;
 
   const AssignProjectDialog({
     super.key,
     required this.userId,
+    this.userName,
     required this.existingProjectIds,
   });
 
@@ -86,7 +88,12 @@ class _AssignProjectDialogState extends State<AssignProjectDialog> {
                       children: [
                         Text('Assign to Project', style: AppTextStyles.h2(context)),
                         const SizedBox(height: 2),
-                        Text('Add user as an active project contributor.', style: AppTextStyles.caption(context)),
+                        Text(
+                          widget.userName != null
+                              ? 'Assign ${widget.userName} to a workspace project.'
+                              : 'Add user as an active project contributor.',
+                          style: AppTextStyles.caption(context),
+                        ),
                       ],
                     ),
                   ],
