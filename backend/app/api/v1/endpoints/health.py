@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.logging import logger
 
 router = APIRouter(tags=["Health"])
 
@@ -21,12 +22,13 @@ def health_check():
 
 @router.get("/readiness", status_code=status.HTTP_200_OK)
 def readiness_check(response: Response, db: Session = Depends(get_db)):
-    """Full readiness probe checking database connection."""
+    """Full readiness probe checking database connection without exposing internal stack traces."""
     db_status = "connected"
     try:
         db.execute(text("SELECT 1"))
     except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+        logger.error(f"Readiness check failed to query database: {e}")
+        db_status = "disconnected"
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     return {

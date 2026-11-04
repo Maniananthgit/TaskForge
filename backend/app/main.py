@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config import settings
@@ -266,6 +266,52 @@ async def taskforge_exception_handler(request: Request, exc: TaskForgeException)
         content={
             "error_code": exc.error_code,
             "message": exc.detail,
+            "path": request.url.path,
+        },
+        headers=exc.headers
+    )
+
+
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import SQLAlchemyError
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    first_msg = errors[0].get("msg", "Invalid request body") if errors else "Validation failed"
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "error_code": "VALIDATION_ERROR",
+            "message": f"Validation failed: {first_msg}",
+            "details": errors,
+            "path": request.url.path,
+        }
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    # Log database error with complete traceback internally, but NEVER leak SQL or credentials to clients
+    logger.error(f"Database error at {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error_code": "DATABASE_ERROR",
+            "message": "A database error occurred while processing your request. Please try again later.",
+            "path": request.url.path,
+        }
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error_code": "HTTP_ERROR",
+            "message": exc.detail if isinstance(exc.detail, str) else str(exc.detail),
             "path": request.url.path,
         },
         headers=exc.headers

@@ -16,6 +16,7 @@ from app.schemas.user import (
     PaginatedUsersResponse
 )
 from app.services.user_service import user_service
+from app.core.rate_limiter import invite_rate_limiter
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -73,7 +74,7 @@ def list_users(
     )
 
 
-@router.post("/invite", response_model=UserInviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/invite", response_model=UserInviteResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(invite_rate_limiter)])
 def invite_new_user(
     invite_in: UserInviteRequest,
     request: Request,

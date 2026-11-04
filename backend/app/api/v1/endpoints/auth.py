@@ -11,18 +11,19 @@ from app.schemas.user import (
 )
 from app.schemas.common import MessageResponse
 from app.services.auth_service import auth_service
+from app.core.rate_limiter import auth_rate_limiter, password_rate_limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth_rate_limiter)])
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     """Register a new user account."""
     user = auth_service.register_user(db, user_in=user_in)
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, dependencies=[Depends(auth_rate_limiter)])
 def login(login_data: UserLogin, db: Session = Depends(get_db)):
     """Authenticate with email and password to receive JWT tokens."""
     return auth_service.authenticate_user(db, email=login_data.email, password=login_data.password)
@@ -52,7 +53,7 @@ def logout(
     return MessageResponse(message="Successfully logged out and session invalidated.")
 
 
-@router.post("/change-password", response_model=MessageResponse)
+@router.post("/change-password", response_model=MessageResponse, dependencies=[Depends(password_rate_limiter)])
 def change_password(
     pwd_in: ChangePasswordRequest,
     current_user: User = Depends(get_current_user),
