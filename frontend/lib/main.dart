@@ -51,6 +51,7 @@ void main() async {
 
   runApp(
     TaskForgeApp(
+      apiClient: apiClient,
       authRepository: authRepository,
       projectRepository: projectRepository,
       taskRepository: taskRepository,
@@ -63,6 +64,7 @@ void main() async {
 }
 
 class TaskForgeApp extends StatefulWidget {
+  final ApiClient apiClient;
   final AuthRepository authRepository;
   final ProjectRepository projectRepository;
   final TaskRepository taskRepository;
@@ -73,6 +75,7 @@ class TaskForgeApp extends StatefulWidget {
 
   const TaskForgeApp({
     super.key,
+    required this.apiClient,
     required this.authRepository,
     required this.projectRepository,
     required this.taskRepository,
@@ -100,6 +103,11 @@ class _TaskForgeAppState extends State<TaskForgeApp> {
   void initState() {
     super.initState();
     _authViewModel = AuthViewModel(widget.authRepository);
+
+    // Register session expired listener for automatic redirection on revoked/expired refresh tokens
+    widget.apiClient.onSessionExpired = () {
+      _authViewModel.logout();
+    };
     _projectViewModel = ProjectViewModel(widget.projectRepository, widget.userService);
     _taskViewModel = TaskViewModel(widget.taskRepository);
     _notificationViewModel = NotificationViewModel(widget.notificationRepository);

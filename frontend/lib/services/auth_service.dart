@@ -86,9 +86,26 @@ class AuthService {
     return user;
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _apiClient.post(
+      '/auth/change-password',
+      body: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      },
+    );
+  }
+
   Future<void> logout() async {
     try {
-      await _apiClient.post(ApiConstants.logout);
+      final refreshToken = await _storageService.getRefreshToken();
+      await _apiClient.post(
+        ApiConstants.logout,
+        body: refreshToken != null ? {'refresh_token': refreshToken} : null,
+      );
     } catch (_) {
       // Continue client cleanup even if network fails
     }

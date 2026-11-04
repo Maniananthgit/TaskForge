@@ -28,10 +28,10 @@ class Settings(BaseSettings):
     USE_RSA_ENCRYPTION: bool = True
     RSA_PRIVATE_KEY_PATH: Optional[str] = None
     RSA_PUBLIC_KEY_PATH: Optional[str] = None
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes short-lived access token for production security
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # CORS
+    # CORS Whitelist for Web Clients
     BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost",
         "http://localhost:3000",
@@ -39,10 +39,10 @@ class Settings(BaseSettings):
         "http://localhost:8080",
         "http://127.0.0.1:8000",
         "http://127.0.0.1:3000",
+        "http://127.0.0.1:8080",
         "http://127.0.0.1",
         "https://taskforge-pm-app.web.app",
         "https://taskforge-pm-app.firebaseapp.com",
-        "*"
     ]
 
     # Email / Notification

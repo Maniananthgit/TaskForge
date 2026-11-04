@@ -41,6 +41,11 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<void> changePassword({required String currentPassword, required String newPassword}) async {
+    if (shouldFail) throw Exception('Incorrect password');
+  }
+
+  @override
   Future<void> logout() async {
     mockUser = null;
   }
@@ -124,6 +129,24 @@ void main() {
       expect(viewModel.status, AuthStatus.unauthenticated);
       expect(viewModel.currentUser, isNull);
       expect(viewModel.isAuthenticated, false);
+    });
+
+    test('Change password delegates to repository and handles errors', () async {
+      viewModel = AuthViewModel(mockRepo);
+      final ok = await viewModel.changePassword(
+        currentPassword: 'OldPassword123!',
+        newPassword: 'NewPassword123!',
+      );
+      expect(ok, true);
+      expect(viewModel.errorMessage, isNull);
+
+      mockRepo.shouldFail = true;
+      final fail = await viewModel.changePassword(
+        currentPassword: 'Wrong!',
+        newPassword: 'NewPassword123!',
+      );
+      expect(fail, false);
+      expect(viewModel.errorMessage, contains('Incorrect password'));
     });
   });
 }

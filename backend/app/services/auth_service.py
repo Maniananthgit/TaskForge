@@ -120,7 +120,7 @@ class AuthService:
             user=UserResponse.model_validate(user)
         )
 
-    def logout_token(self, db: Session, token: str) -> None:
+    def logout_token(self, db: Session, token: str, refresh_token: Optional[str] = None) -> None:
         try:
             payload = decode_token(token)
             jti = payload.get("jti")
@@ -137,7 +137,33 @@ class AuthService:
                 db.commit()
                 logger.info(f"Revoked token {jti} of type {token_type}")
         except Exception as e:
-            logger.warning(f"Failed to cleanly revoke token: {e}")
+            logger.warning(f"Failed to cleanly revoke access token: {e}")
+
+        if refresh_token:
+            try:
+                rf_payload = decode_token(refresh_token)
+                rf_jti = rf_payload.get("jti")
+                rf_exp = rf_payload.get("exp", 0)
+                if rf_jti:
+                    revoked_rf = RevokedToken(
+                        jti=rf_jti,
+                        token_type="refresh",
+                        expires_at=datetime.fromtimestamp(rf_exp, tz=timezone.utc).replace(tzinfo=None)
+                    )
+                    db.add(revoked_rf)
+                    db.commit()
+                    logger.info(f"Revoked refresh token {rf_jti}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanly revoke refresh token: {e}")
+
+    def change_password(self, db: Session, user: User, current_password: str, new_password: str) -> None:
+        if not verify_password(current_password, user.hashed_password):
+            raise AuthenticationFailedException("Current password is incorrect.")
+        if len(new_password) < 6:
+            raise AuthenticationFailedException("New password must be at least 6 characters.")
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+        logger.info(f"User {user.id} ({user.email}) changed their password successfully.")
 
     def update_profile(self, db: Session, user: User, update_in: UserUpdate) -> User:
         update_data = update_in.model_dump(exclude_unset=True)

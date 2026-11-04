@@ -38,10 +38,13 @@ class AppRouter {
           return '/dashboard';
         }
 
-        // Admin & User Management route guard
+        // Admin & User Management route guard (Admin only)
         if (loc.startsWith('/users') || loc.startsWith('/admin')) {
           if (!isAuth) {
             return '/login';
+          }
+          if (authViewModel.currentUser?.role != UserRole.admin) {
+            return '/dashboard';
           }
         }
 

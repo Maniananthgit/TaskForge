@@ -1,10 +1,14 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, oauth2_scheme
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate, UserResponse, Token, UserLogin
+from app.schemas.user import (
+    UserCreate, UserUpdate, UserResponse, Token, UserLogin,
+    RefreshTokenRequest, ChangePasswordRequest, LogoutRequest
+)
 from app.schemas.common import MessageResponse
 from app.services.auth_service import auth_service
 
@@ -31,16 +35,37 @@ def login_oauth(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @router.post("/refresh", response_model=Token)
-def refresh_token(token: Token, db: Session = Depends(get_db)):
+def refresh_token(token_in: RefreshTokenRequest, db: Session = Depends(get_db)):
     """Generate new access token using a valid refresh token."""
-    return auth_service.refresh_access_token(db, refresh_token=token.refresh_token)
+    return auth_service.refresh_access_token(db, refresh_token=token_in.refresh_token)
 
 
 @router.post("/logout", response_model=MessageResponse)
-def logout(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """Invalidate current JWT access token via revocation blacklist."""
-    auth_service.logout_token(db, token=token)
-    return MessageResponse(message="Successfully logged out and token invalidated.")
+def logout(
+    logout_in: Optional[LogoutRequest] = None,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    """Invalidate current JWT access token (and optional refresh token) via revocation blacklist."""
+    refresh_token = logout_in.refresh_token if logout_in else None
+    auth_service.logout_token(db, token=token, refresh_token=refresh_token)
+    return MessageResponse(message="Successfully logged out and session invalidated.")
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    pwd_in: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Secure password change with validation of current password."""
+    auth_service.change_password(
+        db,
+        user=current_user,
+        current_password=pwd_in.current_password,
+        new_password=pwd_in.new_password
+    )
+    return MessageResponse(message="Password successfully updated.")
 
 
 @router.get("/me", response_model=UserResponse)

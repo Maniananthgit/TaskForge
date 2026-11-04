@@ -196,3 +196,4 @@ def can_delete_comment(user: User, comment: TaskComment) -> bool:
     if is_admin(user):
         return True
     return comment.author_id == user.id
+
