@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/network_utils.dart';
 import '../models/api_response.dart';
 import '../models/comment_model.dart';
@@ -10,10 +12,38 @@ import '../services/task_service.dart';
 class TaskRepository {
   final TaskService _taskService;
   final CommentService _commentService;
+  static const String _storageKeyTasks = 'taskforge_persisted_tasks_v2';
+  bool _storageLoaded = false;
 
   TaskRepository(this._taskService, this._commentService);
 
   bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
+
+  Future<void> _ensureStorageLoaded() async {
+    if (_storageLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_storageKeyTasks);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(jsonStr);
+        if (decoded.isNotEmpty) {
+          _demoTasks.clear();
+          for (final item in decoded) {
+            _demoTasks.add(TaskModel.fromJson(item as Map<String, dynamic>));
+          }
+        }
+      }
+    } catch (_) {}
+    _storageLoaded = true;
+  }
+
+  Future<void> _persistTasks() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_demoTasks.map((t) => t.toJson()).toList());
+      await prefs.setString(_storageKeyTasks, jsonStr);
+    } catch (_) {}
+  }
 
   static final Map<int, UserModel> _demoUsersMap = {
     1: UserModel(
@@ -149,6 +179,7 @@ class TaskRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         var items = List<TaskModel>.from(_demoTasks);
         if (projectId != null) {
           items = items.where((t) => t.projectId == projectId).toList();
@@ -182,6 +213,7 @@ class TaskRepository {
       return await _taskService.getTaskById(id);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         return _demoTasks.firstWhere((t) => t.id == id, orElse: () => _demoTasks.first);
       }
       rethrow;
@@ -211,9 +243,11 @@ class TaskRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
+        final maxId = _demoTasks.fold<int>(100, (max, t) => t.id > max ? t.id : max);
         final assignedUser = assigneeId != null ? _demoUsersMap[assigneeId] : null;
         final newTask = TaskModel(
-          id: _demoTasks.length + 101,
+          id: maxId + 1,
           projectId: projectId,
           title: title,
           description: description,
@@ -226,6 +260,7 @@ class TaskRepository {
           createdAt: DateTime.now(),
         );
         _demoTasks.insert(0, newTask);
+        await _persistTasks();
         return newTask;
       }
       rethrow;
@@ -237,6 +272,7 @@ class TaskRepository {
       return await _taskService.updateStatus(id: id, status: status);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final idx = _demoTasks.indexWhere((t) => t.id == id);
         if (idx != -1) {
           final current = _demoTasks[idx];
@@ -256,6 +292,7 @@ class TaskRepository {
             creator: current.creator,
           );
           _demoTasks[idx] = updated;
+          await _persistTasks();
           return updated;
         }
       }
@@ -315,6 +352,7 @@ class TaskRepository {
             updatedAt: DateTime.now(),
           );
           _demoTasks[idx] = updated;
+          await _persistTasks();
           return updated;
         }
         return getTaskById(id);
@@ -328,7 +366,9 @@ class TaskRepository {
       await _taskService.deleteTask(id);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         _demoTasks.removeWhere((t) => t.id == id);
+        await _persistTasks();
         return;
       }
       rethrow;

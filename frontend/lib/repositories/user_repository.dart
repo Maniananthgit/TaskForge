@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/network_utils.dart';
 import '../models/api_response.dart';
 import '../models/user_model.dart';
@@ -7,10 +9,38 @@ import '../services/user_service.dart';
 
 class UserRepository {
   final UserService _userService;
+  static const String _storageKeyUsers = 'taskforge_persisted_users_v2';
+  bool _storageLoaded = false;
 
   UserRepository(this._userService);
 
   bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
+
+  Future<void> _ensureStorageLoaded() async {
+    if (_storageLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_storageKeyUsers);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(jsonStr);
+        if (decoded.isNotEmpty) {
+          _demoUsers.clear();
+          for (final item in decoded) {
+            _demoUsers.add(UserModel.fromJson(item as Map<String, dynamic>));
+          }
+        }
+      }
+    } catch (_) {}
+    _storageLoaded = true;
+  }
+
+  Future<void> _persistUsers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_demoUsers.map((u) => u.toJson()).toList());
+      await prefs.setString(_storageKeyUsers, jsonStr);
+    } catch (_) {}
+  }
 
   // Fallback demo users for graceful preview resilience
   final List<UserModel> _demoUsers = [
@@ -116,9 +146,11 @@ class UserRepository {
       if (users.isNotEmpty) {
         return users;
       }
+      await _ensureStorageLoaded();
       return List<UserModel>.from(_demoUsers);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         var filtered = List<UserModel>.from(_demoUsers);
         if (query != null && query.trim().isNotEmpty) {
           final q = query.trim().toLowerCase();
@@ -132,6 +164,7 @@ class UserRepository {
         }
         return filtered;
       }
+      await _ensureStorageLoaded();
       return List<UserModel>.from(_demoUsers);
     }
   }
@@ -156,6 +189,7 @@ class UserRepository {
       return ApiResponse.success(res);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         // Filter demo users
         var filtered = List<UserModel>.from(_demoUsers);
         if (search != null && search.trim().isNotEmpty) {
@@ -193,6 +227,7 @@ class UserRepository {
       return ApiResponse.success(res);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         return ApiResponse.success(
           UserSummaryMetricsModel(
             totalUsers: _demoUsers.length,
@@ -202,7 +237,7 @@ class UserRepository {
             pendingInvitations: _demoUsers.where((u) => u.status == UserStatus.pendingInvitation).length,
             adminsCount: _demoUsers.where((u) => u.role == UserRole.admin).length,
             projectManagersCount: _demoUsers.where((u) => u.role == UserRole.projectManager).length,
-            developersCount: _demoUsers.where((u) => u.role == UserRole.developer).length,
+            developersCount: _demoUsers.where((u) => u.role == UserRole.developer || u.role == UserRole.employee).length,
           ),
         );
       }
@@ -216,6 +251,7 @@ class UserRepository {
       return ApiResponse.success(user);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final found = _demoUsers.firstWhere(
           (u) => u.id == userId,
           orElse: () => _demoUsers.first,
@@ -250,8 +286,10 @@ class UserRepository {
       return ApiResponse.success(user, message: 'Invitation issued successfully.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
+        final maxId = _demoUsers.fold<int>(0, (max, u) => u.id > max ? u.id : max);
         final newUser = UserModel(
-          id: _demoUsers.length + 1,
+          id: maxId + 1,
           email: email,
           fullName: fullName,
           role: role,
@@ -267,9 +305,10 @@ class UserRepository {
           createdAt: DateTime.now(),
         );
         _demoUsers.insert(0, newUser);
+        await _persistUsers();
         return ApiResponse.success(
           newUser,
-          message: 'Offline simulated invitation issued. Token: simulated_invite_token_123',
+          message: 'User created and saved to storage. Invitation issued.',
         );
       }
       return ApiResponse.error(e.toString());
@@ -282,6 +321,7 @@ class UserRepository {
       return ApiResponse.success(user, message: 'Invitation resent successfully.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final idx = _demoUsers.indexWhere((u) => u.id == userId);
         if (idx != -1) {
           final updated = _demoUsers[idx].copyWith(
@@ -289,6 +329,7 @@ class UserRepository {
             invitationToken: 'simulated_new_token_456',
           );
           _demoUsers[idx] = updated;
+          await _persistUsers();
           return ApiResponse.success(updated, message: 'Simulated new invitation token generated.');
         }
       }
@@ -318,6 +359,7 @@ class UserRepository {
       return ApiResponse.success(user, message: 'User profile updated.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final idx = _demoUsers.indexWhere((u) => u.id == userId);
         if (idx != -1) {
           final updated = _demoUsers[idx].copyWith(
@@ -330,6 +372,7 @@ class UserRepository {
             updatedAt: DateTime.now(),
           );
           _demoUsers[idx] = updated;
+          await _persistUsers();
           return ApiResponse.success(updated, message: 'Profile updated in offline preview.');
         }
       }
@@ -343,10 +386,12 @@ class UserRepository {
       return ApiResponse.success(user, message: 'User role changed to ${newRole.displayName}.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final idx = _demoUsers.indexWhere((u) => u.id == userId);
         if (idx != -1) {
           final updated = _demoUsers[idx].copyWith(role: newRole, updatedAt: DateTime.now());
           _demoUsers[idx] = updated;
+          await _persistUsers();
           return ApiResponse.success(updated, message: 'Role changed in offline preview.');
         }
       }
@@ -360,6 +405,7 @@ class UserRepository {
       return ApiResponse.success(user, message: 'User status updated to ${newStatus.displayName}.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         final idx = _demoUsers.indexWhere((u) => u.id == userId);
         if (idx != -1) {
           final updated = _demoUsers[idx].copyWith(
@@ -368,6 +414,7 @@ class UserRepository {
             updatedAt: DateTime.now(),
           );
           _demoUsers[idx] = updated;
+          await _persistUsers();
           return ApiResponse.success(updated, message: 'Status updated in offline preview.');
         }
       }
@@ -381,7 +428,9 @@ class UserRepository {
       return ApiResponse.success(null, message: 'User account soft-deleted.');
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         _demoUsers.removeWhere((u) => u.id == userId);
+        await _persistUsers();
         return ApiResponse.success(null, message: 'User deleted in offline preview.');
       }
       return ApiResponse.error(e.toString());

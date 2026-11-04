@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/network_utils.dart';
 import '../models/api_response.dart';
 import '../models/project_model.dart';
@@ -6,10 +8,38 @@ import '../services/project_service.dart';
 
 class ProjectRepository {
   final ProjectService _projectService;
+  static const String _storageKeyProjects = 'taskforge_persisted_projects_v2';
+  bool _storageLoaded = false;
 
   ProjectRepository(this._projectService);
 
   bool _isNetworkFailure(dynamic error) => NetworkUtils.isNetworkOrHostFailure(error);
+
+  Future<void> _ensureStorageLoaded() async {
+    if (_storageLoaded) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_storageKeyProjects);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(jsonStr);
+        if (decoded.isNotEmpty) {
+          _demoProjects.clear();
+          for (final item in decoded) {
+            _demoProjects.add(ProjectModel.fromJson(item as Map<String, dynamic>));
+          }
+        }
+      }
+    } catch (_) {}
+    _storageLoaded = true;
+  }
+
+  Future<void> _persistProjects() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(_demoProjects.map((p) => p.toJson()).toList());
+      await prefs.setString(_storageKeyProjects, jsonStr);
+    } catch (_) {}
+  }
 
   final List<ProjectModel> _demoProjects = [
     ProjectModel(
@@ -76,6 +106,7 @@ class ProjectRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         var items = List<ProjectModel>.from(_demoProjects);
         if (search != null && search.isNotEmpty) {
           items = items.where((p) => p.title.toLowerCase().contains(search.toLowerCase())).toList();
@@ -103,6 +134,7 @@ class ProjectRepository {
       return await _projectService.getProjectById(id);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         return _demoProjects.firstWhere(
           (p) => p.id == id,
           orElse: () => _demoProjects.first,
@@ -135,8 +167,10 @@ class ProjectRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
+        final maxId = _demoProjects.fold<int>(0, (max, p) => p.id > max ? p.id : max);
         final newProject = ProjectModel(
-          id: _demoProjects.length + 1,
+          id: maxId + 1,
           title: title,
           description: description,
           status: status,
@@ -151,6 +185,7 @@ class ProjectRepository {
           progressPercentage: 0.0,
         );
         _demoProjects.insert(0, newProject);
+        await _persistProjects();
         return newProject;
       }
       rethrow;
@@ -180,6 +215,7 @@ class ProjectRepository {
       );
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         return getProjectById(id);
       }
       rethrow;
@@ -191,7 +227,9 @@ class ProjectRepository {
       await _projectService.deleteProject(id);
     } catch (e) {
       if (_isNetworkFailure(e)) {
+        await _ensureStorageLoaded();
         _demoProjects.removeWhere((p) => p.id == id);
+        await _persistProjects();
         return;
       }
       rethrow;
