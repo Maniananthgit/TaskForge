@@ -40,6 +40,8 @@ class Settings(BaseSettings):
         "http://127.0.0.1:8000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1",
+        "https://taskforge-pm-app.web.app",
+        "https://taskforge-pm-app.firebaseapp.com",
         "*"
     ]
 

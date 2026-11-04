@@ -13,51 +13,210 @@ from app.api.v1.api import api_router
 
 
 def seed_initial_data():
-    """Seed initial administrator and sample data if not present."""
+    """Seed initial administrator, team members, projects, and tasks if not present."""
+    from datetime import datetime, timedelta, timezone
+    from app.models.project import Project
+    from app.models.project_member import ProjectMember
+    from app.models.task import Task
+    from app.models.enums import ProjectStatus, ProjectPriority, TaskStatus, TaskPriority
+
     db = SessionLocal()
     try:
-        admin_email = "admin@taskforge.internal"
-        admin = db.query(User).filter(User.email == admin_email).first()
-        if not admin:
-            admin = User(
-                email=admin_email,
-                hashed_password=get_password_hash("Admin123!"),
-                full_name="Enterprise Administrator",
-                role=UserRole.ADMIN,
-                status=UserStatus.ACTIVE,
-                is_active=True
-            )
-            db.add(admin)
+        now = datetime.now(timezone.utc)
 
-        # Also seed a Project Manager and a Developer for quick testing
-        pm_email = "pm@taskforge.internal"
-        pm = db.query(User).filter(User.email == pm_email).first()
-        if not pm:
-            pm = User(
-                email=pm_email,
-                hashed_password=get_password_hash("Manager123!"),
-                full_name="Sarah Connor (Project Manager)",
-                role=UserRole.PROJECT_MANAGER,
-                status=UserStatus.ACTIVE,
-                is_active=True
-            )
-            db.add(pm)
+        # 1. Users to seed (All 5 enterprise accounts)
+        users_data = [
+            {
+                "email": "admin@taskforge.internal",
+                "password": "Admin123!",
+                "full_name": "Super Admin",
+                "role": UserRole.ADMIN,
+                "status": UserStatus.ACTIVE,
+                "phone_number": "+1-555-0100",
+                "department": "Platform Engineering",
+                "job_title": "Principal Security Architect",
+            },
+            {
+                "email": "pm@taskforge.internal",
+                "password": "Manager123!",
+                "full_name": "Elena Rostova",
+                "role": UserRole.PROJECT_MANAGER,
+                "status": UserStatus.ACTIVE,
+                "phone_number": "+1-555-0122",
+                "department": "Product Operations",
+                "job_title": "Senior Technical Program Manager",
+            },
+            {
+                "email": "dev@taskforge.internal",
+                "password": "Developer123!",
+                "full_name": "David Chen",
+                "role": UserRole.DEVELOPER,
+                "status": UserStatus.ACTIVE,
+                "phone_number": "+1-555-0133",
+                "department": "Frontend Engineering",
+                "job_title": "Senior Flutter Developer",
+            },
+            {
+                "email": "sarah.connor@taskforge.internal",
+                "password": "Developer123!",
+                "full_name": "Sarah Connor",
+                "role": UserRole.DEVELOPER,
+                "status": UserStatus.PENDING_INVITATION,
+                "is_active": False,
+                "phone_number": "+1-555-0144",
+                "department": "Security Operations",
+                "job_title": "AppSec Engineer",
+            },
+            {
+                "email": "alex.rivera@taskforge.internal",
+                "password": "Developer123!",
+                "full_name": "Alex Rivera",
+                "role": UserRole.DEVELOPER,
+                "status": UserStatus.INACTIVE,
+                "is_active": False,
+                "phone_number": "+1-555-0155",
+                "department": "QA & Automation",
+                "job_title": "QA Automation Engineer",
+            },
+        ]
 
-        dev_email = "dev@taskforge.internal"
-        dev = db.query(User).filter(User.email == dev_email).first()
-        if not dev:
-            dev = User(
-                email=dev_email,
-                hashed_password=get_password_hash("Developer123!"),
-                full_name="Alex Rivera (Developer)",
-                role=UserRole.DEVELOPER,
-                status=UserStatus.ACTIVE,
-                is_active=True
+        user_map = {}
+        for u_data in users_data:
+            existing = db.query(User).filter(User.email == u_data["email"]).first()
+            if not existing:
+                user = User(
+                    email=u_data["email"],
+                    hashed_password=get_password_hash(u_data["password"]),
+                    full_name=u_data["full_name"],
+                    role=u_data["role"],
+                    status=u_data["status"],
+                    is_active=u_data.get("is_active", True),
+                    phone_number=u_data["phone_number"],
+                    department=u_data["department"],
+                    job_title=u_data["job_title"],
+                    last_login_at=now,
+                )
+                db.add(user)
+                db.flush()
+                user_map[u_data["email"]] = user
+            else:
+                user_map[u_data["email"]] = existing
+
+        admin_user = user_map.get("admin@taskforge.internal")
+        pm_user = user_map.get("pm@taskforge.internal")
+        dev_user = user_map.get("dev@taskforge.internal")
+
+        # 2. Projects to seed
+        if admin_user and db.query(Project).count() == 0:
+            p1 = Project(
+                title="Cloud Infrastructure & Kubernetes",
+                description="Multi-region AWS & GCP Kubernetes cluster deployment with automated canary rollouts and zero-downtime failover.",
+                status=ProjectStatus.IN_PROGRESS,
+                priority=ProjectPriority.URGENT,
+                start_date=now - timedelta(days=30),
+                due_date=now + timedelta(days=60),
+                budget_hours=120.0,
+                owner_id=admin_user.id
             )
-            db.add(dev)
+            p2 = Project(
+                title="TaskForge Flutter Web App Redesign",
+                description="Modern, responsive Flutter enterprise UI featuring MVVM state management and dark/light themes.",
+                status=ProjectStatus.IN_PROGRESS,
+                priority=ProjectPriority.HIGH,
+                start_date=now - timedelta(days=15),
+                due_date=now + timedelta(days=45),
+                budget_hours=80.0,
+                owner_id=pm_user.id if pm_user else admin_user.id
+            )
+            p3 = Project(
+                title="PostgreSQL RBAC Security Hardening",
+                description="Row-level security enforcement, audited role transitions, and secure bcrypt credential hashing policies.",
+                status=ProjectStatus.PLANNING,
+                priority=ProjectPriority.MEDIUM,
+                start_date=now,
+                due_date=now + timedelta(days=30),
+                budget_hours=60.0,
+                owner_id=admin_user.id
+            )
+            p4 = Project(
+                title="Design System 2.0 & Component Library",
+                description="Unified design tokens, accessibility compliance (WCAG 2.1 AA), and reusable design assets.",
+                status=ProjectStatus.PLANNING,
+                priority=ProjectPriority.LOW,
+                start_date=now,
+                due_date=now + timedelta(days=90),
+                budget_hours=40.0,
+                owner_id=pm_user.id if pm_user else admin_user.id
+            )
+            db.add_all([p1, p2, p3, p4])
+            db.flush()
+
+            # 3. Project Members
+            members = [
+                ProjectMember(project_id=p1.id, user_id=admin_user.id, role_in_project="Lead"),
+                ProjectMember(project_id=p1.id, user_id=pm_user.id, role_in_project="Member") if pm_user else None,
+                ProjectMember(project_id=p2.id, user_id=pm_user.id, role_in_project="Lead") if pm_user else None,
+                ProjectMember(project_id=p2.id, user_id=dev_user.id, role_in_project="Member") if dev_user else None,
+                ProjectMember(project_id=p3.id, user_id=admin_user.id, role_in_project="Lead"),
+            ]
+            for m in members:
+                if m:
+                    db.add(m)
+
+            # 4. Tasks to seed
+            if dev_user and pm_user:
+                t1 = Task(
+                    project_id=p1.id,
+                    title="Implement Redis Token Blacklist Revocation",
+                    description="Ensure token blacklist persists in Redis with TTL matching JWT expiration.",
+                    status=TaskStatus.IN_PROGRESS,
+                    priority=TaskPriority.URGENT,
+                    due_date=now + timedelta(days=1),
+                    estimated_hours=8.0,
+                    actual_hours=4.5,
+                    creator_id=admin_user.id,
+                    assignee_id=dev_user.id
+                )
+                t2 = Task(
+                    project_id=p2.id,
+                    title="Design Responsive Mobile Navigation Shell",
+                    description="Adaptive bottom navigation for mobile and navigation rail for wide desktop screens.",
+                    status=TaskStatus.TODO,
+                    priority=TaskPriority.HIGH,
+                    due_date=now + timedelta(days=3),
+                    estimated_hours=12.0,
+                    actual_hours=2.0,
+                    creator_id=pm_user.id,
+                    assignee_id=dev_user.id
+                )
+                t3 = Task(
+                    project_id=p3.id,
+                    title="Alembic Database Migration Script Review",
+                    description="Verify foreign keys, cascading deletes, and default timestamp triggers.",
+                    status=TaskStatus.DONE,
+                    priority=TaskPriority.MEDIUM,
+                    due_date=now - timedelta(days=2),
+                    estimated_hours=6.0,
+                    actual_hours=5.5,
+                    creator_id=pm_user.id,
+                    assignee_id=admin_user.id
+                )
+                t4 = Task(
+                    project_id=p3.id,
+                    title="Configure Asymmetric RSA-OAEP-256 Key Exchange",
+                    description="Secure payload encryption for sensitive communication between client and backend.",
+                    status=TaskStatus.IN_REVIEW,
+                    priority=TaskPriority.URGENT,
+                    due_date=now + timedelta(days=2),
+                    estimated_hours=10.0,
+                    actual_hours=9.0,
+                    creator_id=admin_user.id,
+                    assignee_id=pm_user.id
+                )
+                db.add_all([t1, t2, t3, t4])
 
         db.commit()
-        logger.info("Initial seed accounts checked/created.")
+        logger.info("Initial seed accounts and enterprise sample data checked/created.")
     except Exception as e:
         logger.warning(f"Seed data execution notice: {e}")
         db.rollback()
